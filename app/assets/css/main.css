@@ -1,0 +1,32 @@
+html,
+body,
+#__nuxt {
+  min-height: 100%;
+  margin: 0;
+  background: #06111f;
+}
+
+body {
+  color: #f8ead0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(108, 61, 88, 0.24), transparent 36rem),
+    linear-gradient(180deg, #07111f 0%, #030812 100%);
+}

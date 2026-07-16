@@ -1,0 +1,96 @@
+{
+  "site": {
+    "kicker": "TAIWAN BLUES COMMUNITY BOARD",
+    "title": "Blues Calendar Taiwan",
+    "subtitle": "台灣 Blues 課程、Social、Workshop 與活動公告板",
+    "description": "A community board for Blues dancers in Taiwan."
+  },
+  "nav": {
+    "home": "首頁",
+    "calendar": "活動列表",
+    "submit": "投稿活動"
+  },
+  "home": {
+    "guideKicker": "TAIWAN BLUES GUIDE",
+    "guideTitle": "Explore Taiwan Blues",
+    "guideDescription": "從每週課程、短期 Workshop、Social 到大型活動，找到適合你的 Blues 參與方式。",
+    "regularTitle": "Regular Weekly Classes",
+    "regularSubtitle": "常態課程",
+    "upcomingTitle": "Upcoming Blues Events",
+    "upcomingSubtitle": "近期 Blues 活動",
+    "viewAll": "查看全部活動",
+    "viewEvents": "查看活動"
+  },
+  "category": {
+    "class": "常態課程",
+    "classLabel": "Regular Classes",
+    "classDescription": "每週固定開課，適合想穩定學習與練習的舞者。",
+    "workshop": "Workshop",
+    "workshopLabel": "Special Topics",
+    "workshopDescription": "短期主題課、外師課、密集課程與特別訓練。",
+    "social": "Social",
+    "socialLabel": "Dance Nights",
+    "socialDescription": "舞會、練舞、Live Band 與社交跳舞活動。",
+    "event": "Event / Festival",
+    "eventLabel": "Special Events",
+    "eventDescription": "大型活動、跨城市活動、Festival 與 Blues 旅行。"
+  },
+  "event": {
+    "viewDetails": "查看詳情",
+    "register": "報名連結",
+    "registerAction": "前往報名",
+    "date": "日期",
+    "time": "時間",
+    "city": "城市",
+    "venue": "場地",
+    "address": "地址",
+    "organizer": "主辦者",
+    "price": "費用",
+    "priceTitle": "費用 / Tickets",
+    "level": "程度",
+    "recurring": "固定活動",
+    "status": "狀態",
+    "startTime": "開始時間",
+    "endTime": "結束時間",
+    "coverImage": "活動圖片",
+    "infoTitle": "活動資訊",
+    "venueLink": "場地連結",
+    "venueLinkAction": "查看地圖 / 場地連結",
+    "fixedBadge": "固定",
+    "classBadge": "CLASS",
+    "summaryTitle": "活動摘要",
+    "detailsTitle": "活動詳情",
+    "detailTitle": "活動",
+    "detailDescription": "台灣 Blues 活動資訊。"
+  },
+  "calendar": {
+    "kicker": "All Blues Events",
+    "title": "活動列表",
+    "description": "台灣 Blues 常態課程、Workshop、Social 與各類活動列表。"
+  },
+  "filters": {
+    "all": "All",
+    "class": "Class",
+    "workshop": "Workshop",
+    "social": "Social",
+    "event": "Event"
+  },
+  "common": {
+    "loadError": "載入活動失敗。",
+    "noEvents": "目前沒有已發佈活動。",
+    "noClasses": "目前沒有常態課程。",
+    "noMatchingEvents": "目前沒有符合條件的活動。",
+    "notFound": "找不到活動資料。",
+    "tbdTime": "時間待定",
+    "timeToBeAnnounced": "時間待公布",
+    "tbdCity": "城市待定",
+    "tbdVenue": "地點待定",
+    "tbdAddress": "地址待定",
+    "tbdOrganizer": "待定",
+    "noSummary": "尚無活動簡介。",
+    "noPrice": "未提供",
+    "noLevel": "未提供",
+    "yes": "是",
+    "no": "否"
+  }
+}

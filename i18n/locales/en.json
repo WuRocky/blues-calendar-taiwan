@@ -1,0 +1,96 @@
+{
+  "site": {
+    "kicker": "TAIWAN BLUES COMMUNITY BOARD",
+    "title": "Blues Calendar Taiwan",
+    "subtitle": "A board for Blues classes, socials, workshops, and event announcements in Taiwan.",
+    "description": "A community board for Blues dancers in Taiwan."
+  },
+  "nav": {
+    "home": "Home",
+    "calendar": "Events",
+    "submit": "Submit Event"
+  },
+  "home": {
+    "guideKicker": "TAIWAN BLUES GUIDE",
+    "guideTitle": "Explore Taiwan Blues",
+    "guideDescription": "From weekly classes and short workshops to socials and major events, find the way you want to join the Blues community.",
+    "regularTitle": "Regular Weekly Classes",
+    "regularSubtitle": "Regular Weekly Classes",
+    "upcomingTitle": "Upcoming Blues Events",
+    "upcomingSubtitle": "Upcoming Blues Events",
+    "viewAll": "View All Events",
+    "viewEvents": "View Events"
+  },
+  "category": {
+    "class": "Regular Classes",
+    "classLabel": "Regular Classes",
+    "classDescription": "Weekly classes for dancers who want to learn and practice consistently.",
+    "workshop": "Workshop",
+    "workshopLabel": "Special Topics",
+    "workshopDescription": "Short-term topic classes, guest teacher sessions, intensives, and focused training.",
+    "social": "Social",
+    "socialLabel": "Dance Nights",
+    "socialDescription": "Dance nights, practice sessions, live band events, and social dancing gatherings.",
+    "event": "Event / Festival",
+    "eventLabel": "Special Events",
+    "eventDescription": "Major events, cross-city gatherings, festivals, and Blues travel."
+  },
+  "event": {
+    "viewDetails": "View Details",
+    "register": "Registration Link",
+    "registerAction": "Register",
+    "date": "Date",
+    "time": "Time",
+    "city": "City",
+    "venue": "Venue",
+    "address": "Address",
+    "organizer": "Organizer",
+    "price": "Price",
+    "priceTitle": "Tickets / Price",
+    "level": "Level",
+    "recurring": "Recurring",
+    "status": "Status",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "coverImage": "Cover Image",
+    "infoTitle": "Event Info",
+    "venueLink": "Venue Link",
+    "venueLinkAction": "View Map / Venue Link",
+    "fixedBadge": "WEEKLY",
+    "classBadge": "CLASS",
+    "summaryTitle": "Summary",
+    "detailsTitle": "Details",
+    "detailTitle": "Event",
+    "detailDescription": "Blues event information in Taiwan."
+  },
+  "calendar": {
+    "kicker": "All Blues Events",
+    "title": "All Blues Events",
+    "description": "A list of Blues classes, workshops, socials, and events in Taiwan."
+  },
+  "filters": {
+    "all": "All",
+    "class": "Class",
+    "workshop": "Workshop",
+    "social": "Social",
+    "event": "Event"
+  },
+  "common": {
+    "loadError": "Failed to load events.",
+    "noEvents": "No published events yet.",
+    "noClasses": "No regular weekly classes yet.",
+    "noMatchingEvents": "No events match this filter.",
+    "notFound": "Event not found.",
+    "tbdTime": "Time TBD",
+    "timeToBeAnnounced": "Time to be announced",
+    "tbdCity": "City TBD",
+    "tbdVenue": "Venue TBD",
+    "tbdAddress": "Address TBD",
+    "tbdOrganizer": "TBD",
+    "noSummary": "No summary yet.",
+    "noPrice": "Not provided",
+    "noLevel": "Not provided",
+    "yes": "Yes",
+    "no": "No"
+  }
+}

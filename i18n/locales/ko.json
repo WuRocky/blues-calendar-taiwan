@@ -1,0 +1,96 @@
+{
+  "site": {
+    "kicker": "TAIWAN BLUES COMMUNITY BOARD",
+    "title": "Blues Calendar Taiwan",
+    "subtitle": "대만 Blues 수업, Social, Workshop, 행사 공지 보드",
+    "description": "A community board for Blues dancers in Taiwan."
+  },
+  "nav": {
+    "home": "홈",
+    "calendar": "이벤트 목록",
+    "submit": "이벤트 제보"
+  },
+  "home": {
+    "guideKicker": "TAIWAN BLUES GUIDE",
+    "guideTitle": "Explore Taiwan Blues",
+    "guideDescription": "주간 수업, 단기 Workshop, Social, 대형 이벤트까지 자신에게 맞는 Blues 참여 방식을 찾아보세요.",
+    "regularTitle": "Regular Weekly Classes",
+    "regularSubtitle": "정규 수업",
+    "upcomingTitle": "Upcoming Blues Events",
+    "upcomingSubtitle": "다가오는 Blues 이벤트",
+    "viewAll": "전체 이벤트 보기",
+    "viewEvents": "이벤트 보기"
+  },
+  "category": {
+    "class": "정규 수업",
+    "classLabel": "Regular Classes",
+    "classDescription": "매주 정기적으로 열리며 꾸준히 배우고 연습하고 싶은 댄서에게 적합합니다.",
+    "workshop": "Workshop",
+    "workshopLabel": "Special Topics",
+    "workshopDescription": "단기 주제 수업, 외부 강사 수업, 집중 과정, 특별 훈련.",
+    "social": "Social",
+    "socialLabel": "Dance Nights",
+    "socialDescription": "댄스 나이트, 연습 모임, Live Band, 소셜 댄스 이벤트.",
+    "event": "Event / Festival",
+    "eventLabel": "Special Events",
+    "eventDescription": "대형 행사, 도시 간 이벤트, Festival, Blues 여행."
+  },
+  "event": {
+    "viewDetails": "자세히 보기",
+    "register": "등록 링크",
+    "registerAction": "등록하러 가기",
+    "date": "날짜",
+    "time": "시간",
+    "city": "도시",
+    "venue": "장소",
+    "address": "주소",
+    "organizer": "주최",
+    "price": "비용",
+    "priceTitle": "비용 / Tickets",
+    "level": "레벨",
+    "recurring": "정기 활동",
+    "status": "상태",
+    "startTime": "시작 시간",
+    "endTime": "종료 시간",
+    "coverImage": "커버 이미지",
+    "infoTitle": "이벤트 정보",
+    "venueLink": "장소 링크",
+    "venueLinkAction": "지도 / 장소 링크 보기",
+    "fixedBadge": "정기",
+    "classBadge": "CLASS",
+    "summaryTitle": "요약",
+    "detailsTitle": "상세 정보",
+    "detailTitle": "이벤트",
+    "detailDescription": "대만 Blues 이벤트 정보."
+  },
+  "calendar": {
+    "kicker": "All Blues Events",
+    "title": "All Blues Events",
+    "description": "대만의 Blues 수업, Workshop, Social, 각종 이벤트 목록입니다."
+  },
+  "filters": {
+    "all": "All",
+    "class": "Class",
+    "workshop": "Workshop",
+    "social": "Social",
+    "event": "Event"
+  },
+  "common": {
+    "loadError": "이벤트를 불러오지 못했습니다.",
+    "noEvents": "게시된 이벤트가 아직 없습니다.",
+    "noClasses": "정규 수업이 아직 없습니다.",
+    "noMatchingEvents": "조건에 맞는 이벤트가 없습니다.",
+    "notFound": "이벤트를 찾을 수 없습니다.",
+    "tbdTime": "시간 미정",
+    "timeToBeAnnounced": "시간 추후 공지",
+    "tbdCity": "도시 미정",
+    "tbdVenue": "장소 미정",
+    "tbdAddress": "주소 미정",
+    "tbdOrganizer": "미정",
+    "noSummary": "요약이 아직 없습니다.",
+    "noPrice": "미제공",
+    "noLevel": "미제공",
+    "yes": "예",
+    "no": "아니오"
+  }
+}

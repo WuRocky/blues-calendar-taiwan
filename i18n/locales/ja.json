@@ -1,0 +1,96 @@
+{
+  "site": {
+    "kicker": "TAIWAN BLUES COMMUNITY BOARD",
+    "title": "Blues Calendar Taiwan",
+    "subtitle": "台湾の Blues レッスン、Social、Workshop、イベント告知ボード",
+    "description": "A community board for Blues dancers in Taiwan."
+  },
+  "nav": {
+    "home": "ホーム",
+    "calendar": "イベント一覧",
+    "submit": "イベント投稿"
+  },
+  "home": {
+    "guideKicker": "TAIWAN BLUES GUIDE",
+    "guideTitle": "Explore Taiwan Blues",
+    "guideDescription": "毎週のクラス、短期 Workshop、Social、大型イベントまで、自分に合う Blues の参加方法を見つけましょう。",
+    "regularTitle": "Regular Weekly Classes",
+    "regularSubtitle": "通常クラス",
+    "upcomingTitle": "Upcoming Blues Events",
+    "upcomingSubtitle": "近日の Blues イベント",
+    "viewAll": "すべてのイベントを見る",
+    "viewEvents": "イベントを見る"
+  },
+  "category": {
+    "class": "通常クラス",
+    "classLabel": "Regular Classes",
+    "classDescription": "毎週定期開催され、継続して学び練習したいダンサーに向いています。",
+    "workshop": "Workshop",
+    "workshopLabel": "Special Topics",
+    "workshopDescription": "短期テーマクラス、ゲスト講師クラス、集中講座、特別トレーニング。",
+    "social": "Social",
+    "socialLabel": "Dance Nights",
+    "socialDescription": "ダンスナイト、練習会、Live Band、ソーシャルダンスイベント。",
+    "event": "Event / Festival",
+    "eventLabel": "Special Events",
+    "eventDescription": "大型イベント、都市をまたぐ企画、Festival、Blues 旅行。"
+  },
+  "event": {
+    "viewDetails": "詳細を見る",
+    "register": "申込リンク",
+    "registerAction": "申込ページへ",
+    "date": "日付",
+    "time": "時間",
+    "city": "都市",
+    "venue": "会場",
+    "address": "住所",
+    "organizer": "主催",
+    "price": "料金",
+    "priceTitle": "料金 / Tickets",
+    "level": "レベル",
+    "recurring": "定期開催",
+    "status": "状態",
+    "startTime": "開始時間",
+    "endTime": "終了時間",
+    "coverImage": "カバー画像",
+    "infoTitle": "イベント情報",
+    "venueLink": "会場リンク",
+    "venueLinkAction": "地図 / 会場リンクを見る",
+    "fixedBadge": "定期",
+    "classBadge": "CLASS",
+    "summaryTitle": "概要",
+    "detailsTitle": "詳細",
+    "detailTitle": "イベント",
+    "detailDescription": "台湾の Blues イベント情報。"
+  },
+  "calendar": {
+    "kicker": "All Blues Events",
+    "title": "All Blues Events",
+    "description": "台湾の Blues クラス、Workshop、Social、各種イベント一覧。"
+  },
+  "filters": {
+    "all": "All",
+    "class": "Class",
+    "workshop": "Workshop",
+    "social": "Social",
+    "event": "Event"
+  },
+  "common": {
+    "loadError": "イベントの読み込みに失敗しました。",
+    "noEvents": "公開済みイベントはまだありません。",
+    "noClasses": "通常クラスはまだありません。",
+    "noMatchingEvents": "条件に合うイベントがありません。",
+    "notFound": "イベントが見つかりません。",
+    "tbdTime": "時間未定",
+    "timeToBeAnnounced": "時間は後日公開",
+    "tbdCity": "都市未定",
+    "tbdVenue": "会場未定",
+    "tbdAddress": "住所未定",
+    "tbdOrganizer": "未定",
+    "noSummary": "概要はまだありません。",
+    "noPrice": "未提供",
+    "noLevel": "未提供",
+    "yes": "はい",
+    "no": "いいえ"
+  }
+}
