@@ -1,14 +1,22 @@
 import { createError, useRuntimeConfig } from '#imports'
-import dayjs from 'dayjs'
-import { Client } from '@notionhq/client'
+import { Client, isFullDatabase } from '@notionhq/client'
+import type { QueryDataSourceResponse } from '@notionhq/client/build/src/api-endpoints/data-sources'
+import type { ListBlockChildrenResponse } from '@notionhq/client/build/src/api-endpoints/blocks'
 import { z } from 'zod'
-import type { EventItem, EventType } from '~~/types/event'
+import { evaluateEventTime, normalizeNotionDateTime, shouldDisplayPublicEvent, sortEventsByDisplayPriority, withEventTimeStatus } from '~~/lib/event-time'
+import { normalizeEventStatus } from '~~/lib/event-status'
+import { collectPaginatedNotionResults } from '~~/lib/notion-pagination'
+import type { BaseEventItem, EventItem, EventStatus, EventType } from '~~/types/event'
+
+const publicSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+const EVENTS_CACHE_TTL_SECONDS = 300
 
 const eventSchema = z.object({
   id: z.string().default(''),
   slug: z.string().default(''),
   name: z.string().default('Untitled Event'),
   status: z.string().default('Draft'),
+  eventStatus: z.enum(['scheduled', 'cancelled', 'postponed']).default('scheduled'),
   eventType: z.enum(['class', 'social', 'event', 'open-floor', 'party', 'workshop', 'festival', 'other']).default('other'),
   summary: z.string().default(''),
   description: z.string().default(''),
@@ -19,6 +27,8 @@ const eventSchema = z.object({
   address: z.string().default(''),
   city: z.string().default(''),
   organizer: z.string().default(''),
+  weekday: z.string().nullable().default(null),
+  weekdayOrder: z.number().nullable().default(null),
   price: z.string().default(''),
   level: z.string().default(''),
   registrationUrl: z.string().default(''),
@@ -87,6 +97,11 @@ function getUrl(page: any, name: string) {
   return getProperty(page, name)?.url || ''
 }
 
+function getNumber(page: any, name: string) {
+  const value = getProperty(page, name)?.number
+  return typeof value === 'number' ? value : null
+}
+
 function getDate(page: any, name: string) {
   return getProperty(page, name)?.date?.start || null
 }
@@ -131,34 +146,120 @@ function getPlainTextProperty(page: any, name: string) {
   return property.plain_text || ''
 }
 
+function warnInvalidPublicEvent(page: any, reason: string, slug: string) {
+  if (!import.meta.dev) {
+    return
+  }
+
+  const pageId = typeof page?.id === 'string' ? page.id : 'unknown'
+  const details = slug ? `slug="${slug}"` : 'slug=<empty>'
+
+  console.warn(`[events] Skipping published event ${pageId}: ${reason} (${details})`)
+}
+
+function warnInvalidPublicEventTime(event: BaseEventItem, reason: string) {
+  if (!import.meta.dev) {
+    return
+  }
+
+  const identifier = event.slug || event.id || 'unknown'
+  const eventName = event.name || 'Untitled Event'
+
+  console.warn(`[events] Skipping published event ${identifier}: ${reason} (name="${eventName}")`)
+}
+
+function warnFallbackEventStatus(page: any, reason: string, rawValue: string) {
+  if (!import.meta.dev) {
+    return
+  }
+
+  const pageId = typeof page?.id === 'string' ? page.id : 'unknown'
+  const eventName = getTitle(page, 'Name') || 'Untitled Event'
+  const rawDetails = rawValue ? `raw="${rawValue}"` : 'raw=<empty>'
+
+  console.warn(`[events] Falling back Event Status for ${pageId}: ${reason} (name="${eventName}", ${rawDetails})`)
+}
+
+interface MappedEventResult {
+  event: BaseEventItem
+  timeIssues: string[]
+}
+
+function logNotionCacheMiss(scope: 'events' | 'data-source') {
+  if (!import.meta.dev) {
+    return
+  }
+
+  console.info(`[events] Notion ${scope} cache miss`)
+}
+
+function mapEventStatus(page: any): EventStatus {
+  const rawValue = getSelect(page, 'Event Status')
+  const { eventStatus, warningReason } = normalizeEventStatus(rawValue)
+
+  if (warningReason) {
+    warnFallbackEventStatus(page, warningReason, rawValue)
+  }
+
+  return eventStatus
+}
+
+function getValidatedPublicSlug(page: any) {
+  const slug = getRichText(page, 'Slug')
+
+  if (!slug) {
+    warnInvalidPublicEvent(page, 'missing Slug', slug)
+    return null
+  }
+
+  const result = publicSlugSchema.safeParse(slug)
+
+  if (!result.success) {
+    warnInvalidPublicEvent(page, 'invalid Slug format', slug)
+    return null
+  }
+
+  return result.data
+}
+
 async function getPageDescription(client: Client, pageId: string) {
-  try {
-    const response = await client.blocks.children.list({
-      block_id: pageId,
-      page_size: 100
-    })
-
-    return response.results
-      .map((block: any) => {
-        const richText = block?.[block.type]?.rich_text
-        if (!Array.isArray(richText)) {
-          return ''
-        }
-
-        return richText.map((item: any) => item?.plain_text || '').join('')
+  const results = await collectPaginatedNotionResults(
+    async (startCursor): Promise<ListBlockChildrenResponse> => {
+      return client.blocks.children.list({
+        block_id: pageId,
+        start_cursor: startCursor ?? undefined,
+        page_size: 100
       })
-      .filter(Boolean)
-      .join('\n')
-  }
-  catch {
-    return ''
-  }
+    },
+    {
+      scope: `blocks for page ${pageId}`
+    }
+  )
+
+  return results
+    .map((block: any) => {
+      const richText = block?.[block.type]?.rich_text
+      if (!Array.isArray(richText)) {
+        return ''
+      }
+
+      return richText.map((item: any) => item?.plain_text || '').join('')
+    })
+    .filter(Boolean)
+    .join('\n')
 }
 
 async function getEventsDataSourceId(client: Client, databaseId: string) {
   const database = await client.databases.retrieve({
     database_id: databaseId
   })
+
+  if (!isFullDatabase(database)) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: `Unexpected partial Notion database response for: ${databaseId}`
+    })
+  }
 
   const dataSourceId = database.data_sources?.[0]?.id
 
@@ -172,24 +273,46 @@ async function getEventsDataSourceId(client: Client, databaseId: string) {
   return dataSourceId
 }
 
-export function mapNotionPageToEvent(page: any, description = ''): EventItem {
-  const startTime = getDate(page, 'Start Time')
-  const endTime = getDate(page, 'End Time')
+const getCachedEventsDataSourceId = defineCachedFunction(async (databaseId: string) => {
+  logNotionCacheMiss('data-source')
+
+  const client = getNotionClient()
+  return getEventsDataSourceId(client, databaseId)
+}, {
+  name: 'notion-events-data-source-id',
+  group: 'notion',
+  maxAge: EVENTS_CACHE_TTL_SECONDS,
+  swr: false,
+  getKey: (databaseId: string) => databaseId
+})
+
+function mapNotionPageToEventResult(page: any, description = ''): MappedEventResult {
+  const slug = getValidatedPublicSlug(page)
+
+  if (!slug) {
+    throw new Error('Invalid public slug')
+  }
+
+  const normalizedStartTime = normalizeNotionDateTime(getDate(page, 'Start Time'), 'start')
+  const normalizedEndTime = normalizeNotionDateTime(getDate(page, 'End Time'), 'end')
   const event = eventSchema.parse({
     id: page?.id || '',
-    slug: getRichText(page, 'Slug'),
+    slug,
     name: getTitle(page, 'Name'),
     status: getSelect(page, 'Status') || 'Draft',
+    eventStatus: mapEventStatus(page),
     eventType: normalizeEventType(getSelect(page, 'Event Type') || 'other'),
     summary: getRichText(page, 'Summary'),
     description: description || '',
-    startTime,
-    endTime,
+    startTime: normalizedStartTime.value,
+    endTime: normalizedEndTime.value,
     venueName: getRichText(page, 'Venue Name'),
     venueUrl: getUrl(page, 'Venue URL'),
     address: getRichText(page, 'Address'),
     city: getSelect(page, 'City') || getRichText(page, 'City'),
     organizer: getRichText(page, 'Organizer'),
+    weekday: getSelect(page, 'Weekday') || null,
+    weekdayOrder: getNumber(page, 'Weekday Order'),
     price: getPlainTextProperty(page, 'Price'),
     level: getSelect(page, 'Level') || getPlainTextProperty(page, 'Level'),
     registrationUrl: getUrl(page, 'Registration URL'),
@@ -200,12 +323,74 @@ export function mapNotionPageToEvent(page: any, description = ''): EventItem {
   })
 
   return {
-    ...event,
-    slug: event.slug || page?.id || '',
-    startTime: event.startTime ? dayjs(event.startTime).toISOString() : null,
-    endTime: event.endTime ? dayjs(event.endTime).toISOString() : null
+    event: {
+      ...event
+    },
+    timeIssues: [normalizedStartTime.reason, normalizedEndTime.reason].filter((reason): reason is string => Boolean(reason))
   }
 }
+
+function createEventItemWithTimeStatus(event: BaseEventItem, timeIssues: string[] = []): EventItem {
+  if (timeIssues.length > 0) {
+    return {
+      ...event,
+      timeStatus: 'invalid'
+    }
+  }
+
+  return withEventTimeStatus(event)
+}
+
+export function mapNotionPageToEvent(page: any, description = ''): BaseEventItem {
+  return mapNotionPageToEventResult(page, description).event
+}
+
+const getCachedPublishedEventSource = defineCachedFunction(async (databaseId: string) => {
+  logNotionCacheMiss('events')
+
+  const client = getNotionClient()
+  const dataSourceId = await getCachedEventsDataSourceId(databaseId)
+
+  const results = await collectPaginatedNotionResults(
+    async (startCursor): Promise<QueryDataSourceResponse> => {
+      return client.dataSources.query({
+        data_source_id: dataSourceId,
+        filter: {
+          property: 'Status',
+          select: {
+            equals: 'Published'
+          }
+        },
+        sorts: [
+          {
+            property: 'Start Time',
+            direction: 'ascending'
+          }
+        ],
+        start_cursor: startCursor ?? undefined,
+        page_size: 100
+      })
+    },
+    {
+      scope: 'published events'
+    }
+  )
+
+  return results.flatMap((page: any) => {
+    try {
+      return [mapNotionPageToEventResult(page)]
+    }
+    catch {
+      return []
+    }
+  })
+}, {
+  name: 'notion-published-events-source',
+  group: 'notion',
+  maxAge: EVENTS_CACHE_TTL_SECONDS,
+  swr: false,
+  getKey: (databaseId: string) => databaseId
+})
 
 export async function getPublishedEvents() {
   const config = useRuntimeConfig()
@@ -217,26 +402,24 @@ export async function getPublishedEvents() {
     })
   }
 
-  const client = getNotionClient()
-  const dataSourceId = await getEventsDataSourceId(client, config.notionEventsDatabaseId)
-  const response = await client.dataSources.query({
-    data_source_id: dataSourceId,
-    filter: {
-      property: 'Status',
-      select: {
-        equals: 'Published'
+  const publishedSource = await getCachedPublishedEventSource(config.notionEventsDatabaseId)
+
+  const events = publishedSource.flatMap(({ event: mappedEvent, timeIssues }) => {
+    const event = createEventItemWithTimeStatus(mappedEvent, timeIssues)
+    const { reason } = evaluateEventTime(event)
+
+    if (!shouldDisplayPublicEvent(event)) {
+      if (event.timeStatus === 'invalid') {
+        warnInvalidPublicEventTime(event, timeIssues[0] || reason || 'invalid event time')
       }
-    },
-    sorts: [
-      {
-        property: 'Start Time',
-        direction: 'ascending'
-      }
-    ],
-    page_size: 100
+
+      return []
+    }
+
+    return [event]
   })
 
-  return response.results.map((page: any) => mapNotionPageToEvent(page))
+  return sortEventsByDisplayPriority(events)
 }
 
 export async function getEventBySlug(slug: string) {
@@ -250,7 +433,7 @@ export async function getEventBySlug(slug: string) {
   }
 
   const client = getNotionClient()
-  const dataSourceId = await getEventsDataSourceId(client, config.notionEventsDatabaseId)
+  const dataSourceId = await getCachedEventsDataSourceId(config.notionEventsDatabaseId)
   const response = await client.dataSources.query({
     data_source_id: dataSourceId,
     filter: {
@@ -278,11 +461,17 @@ export async function getEventBySlug(slug: string) {
     return null
   }
 
-  const mapped = mapNotionPageToEvent(page)
+  const validatedSlug = getValidatedPublicSlug(page)
+
+  if (!validatedSlug) {
+    return null
+  }
+
+  const { event: mapped, timeIssues } = mapNotionPageToEventResult(page)
   const description = await getPageDescription(client, mapped.id)
 
-  return {
+  return createEventItemWithTimeStatus({
     ...mapped,
     description: description || mapped.description
-  }
+  }, timeIssues)
 }

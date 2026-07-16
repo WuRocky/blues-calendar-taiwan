@@ -2,20 +2,32 @@
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import { getEventDisplayStatus, getEventDisplayStatusLabel, isEventStatusMuted } from '~~/lib/event-status'
+import { shouldDisplayCalendarEvent } from '~~/lib/event-time'
 import type { EventItem } from '~~/types/event'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
+type EventTypeFilter =
+  | 'all'
+  | 'class'
+  | 'workshop'
+  | 'social'
+  | 'event'
+
+type SpecificEventTypeFilter = Exclude<EventTypeFilter, 'all'>
+type FilterOption = { value: EventTypeFilter, label: string }
+
 const { t } = useI18n()
 const localePath = useLocalePath()
-const activeFilter = ref<'all' | 'class' | 'workshop' | 'social' | 'event'>('all')
+const activeFilter = ref<EventTypeFilter>('all')
 
 const { data: events, error } = await useFetch<EventItem[]>('/api/events', {
   default: () => []
 })
 
-const filterOptions = computed(() => [
+const filterOptions = computed<FilterOption[]>(() => [
   { value: 'all', label: t('filters.all') },
   { value: 'class', label: t('filters.class') },
   { value: 'workshop', label: t('filters.workshop') },
@@ -23,7 +35,7 @@ const filterOptions = computed(() => [
   { value: 'event', label: t('filters.event') }
 ])
 
-function mapFilterType(eventType: string) {
+function mapFilterType(eventType: string): SpecificEventTypeFilter {
   const normalized = eventType.toLowerCase()
   if (normalized === 'class') return 'class'
   if (normalized === 'workshop') return 'workshop'
@@ -32,18 +44,13 @@ function mapFilterType(eventType: string) {
 }
 
 const filteredEvents = computed(() => {
-  const sorted = [...(events.value || [])].sort((a, b) => {
-    if (!a.startTime && !b.startTime) return 0
-    if (!a.startTime) return 1
-    if (!b.startTime) return -1
-    return a.startTime.localeCompare(b.startTime)
-  })
+  const visibleEvents = (events.value || []).filter((eventItem) => shouldDisplayCalendarEvent(eventItem))
 
   if (activeFilter.value === 'all') {
-    return sorted
+    return visibleEvents
   }
 
-  return sorted.filter((eventItem) => mapFilterType(eventItem.eventType) === activeFilter.value)
+  return visibleEvents.filter((eventItem) => mapFilterType(eventItem.eventType) === activeFilter.value)
 })
 
 function formatDate(date: string | null) {
@@ -82,6 +89,22 @@ function getDateBadge(eventItem: EventItem) {
 
 function getEventTypeLabel(eventType: string) {
   return t(`filters.${mapFilterType(eventType)}`)
+}
+
+function getStatusLabel(eventItem: EventItem) {
+  return getEventDisplayStatusLabel(getEventDisplayStatus(eventItem))
+}
+
+function getStatusBadgeClass(eventItem: EventItem) {
+  if (eventItem.eventStatus === 'cancelled') {
+    return 'event-status-badge-cancelled'
+  }
+
+  if (eventItem.eventStatus === 'postponed') {
+    return 'event-status-badge-postponed'
+  }
+
+  return 'event-live-badge'
 }
 
 function getDisplayTime(eventItem: EventItem) {
@@ -135,6 +158,7 @@ useSeoMeta({
           :key="eventItem.id"
           :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
           class="event-card event-card-link"
+          :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
           :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
         >
           <div class="date-badge">
@@ -147,7 +171,10 @@ useSeoMeta({
           <div class="event-content">
             <div class="event-head">
               <div>
-                <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+                <div class="event-tag-row">
+                  <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+                  <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
+                </div>
                 <h2 class="event-title">{{ eventItem.name }}</h2>
               </div>
               <span class="event-link">{{ $t('event.viewDetails') }}</span>
@@ -211,6 +238,56 @@ useSeoMeta({
 .state-copy,
 .event-meta {
   color: #d7c8aa;
+}
+
+.event-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.event-tag-row .event-tag {
+  margin: 0;
+}
+
+.event-live-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #7b2d26;
+  color: #f9edd8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.event-status-badge-cancelled,
+.event-status-badge-postponed {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.event-status-badge-cancelled {
+  background: rgba(112, 24, 24, 0.18);
+  color: #f3b4ad;
+  border: 1px solid rgba(243, 180, 173, 0.28);
+}
+
+.event-status-badge-postponed {
+  background: rgba(129, 92, 15, 0.18);
+  color: #f0d59c;
+  border: 1px solid rgba(240, 213, 156, 0.28);
+}
+
+.event-card-muted {
+  opacity: 0.82;
 }
 
 .filter-row {

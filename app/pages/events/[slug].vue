@@ -2,6 +2,7 @@
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import { getEventDisplayStatus, getEventDisplayStatusLabel, getEventRegistrationNotice, isEventRegistrationUnavailable, isEventStatusMuted } from '~~/lib/event-status'
 import type { EventItem } from '~~/types/event'
 
 dayjs.extend(utc)
@@ -58,6 +59,18 @@ function getEventTypeLabel(eventType: string) {
   return t('filters.event')
 }
 
+const displayStatusLabel = computed(() => {
+  return eventItem.value ? getEventDisplayStatusLabel(getEventDisplayStatus(eventItem.value)) : ''
+})
+
+const registrationNotice = computed(() => {
+  return eventItem.value ? getEventRegistrationNotice(eventItem.value) : ''
+})
+
+const isRegistrationUnavailable = computed(() => {
+  return eventItem.value ? isEventRegistrationUnavailable(eventItem.value) : false
+})
+
 useSeoMeta({
   title: () => eventItem.value?.name ? `${eventItem.value.name} | ${t('site.title')}` : `${t('event.detailTitle')} | ${t('site.title')}`,
   description: () => eventItem.value?.summary || t('event.detailDescription')
@@ -69,8 +82,17 @@ useSeoMeta({
     <section class="detail-panel">
       <p v-if="error" class="state-copy">{{ $t('common.notFound') }}</p>
 
-      <article v-else-if="eventItem" class="event-sheet">
-        <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+      <article v-else-if="eventItem" class="event-sheet" :class="{ 'event-sheet-muted': isEventStatusMuted(eventItem) }">
+        <div class="event-tag-row">
+          <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+          <span v-if="displayStatusLabel" class="event-status-badge" :class="{
+            'event-status-badge-cancelled': eventItem.eventStatus === 'cancelled',
+            'event-status-badge-postponed': eventItem.eventStatus === 'postponed',
+            'event-status-badge-ongoing': eventItem.eventStatus === 'scheduled' && eventItem.timeStatus === 'ongoing'
+          }">
+            {{ displayStatusLabel }}
+          </span>
+        </div>
         <h1 class="event-title">{{ eventItem.name }}</h1>
         <p class="event-datetime">{{ formatDateRange(eventItem.startTime, eventItem.endTime) }}</p>
         <p v-if="eventItem.recurring && eventItem.recurringText" class="event-recurring">
@@ -137,8 +159,10 @@ useSeoMeta({
           </p>
         </div>
 
+        <p v-if="registrationNotice" class="status-notice">{{ registrationNotice }}</p>
+
         <a
-          v-if="eventItem.registrationUrl"
+          v-if="eventItem.registrationUrl && !isRegistrationUnavailable"
           class="action-button"
           :href="eventItem.registrationUrl"
           target="_blank"
@@ -183,10 +207,45 @@ useSeoMeta({
   text-transform: uppercase;
 }
 
+.event-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .event-tag {
   margin: 0 0 8px;
   font-size: 0.82rem;
   font-weight: 700;
+}
+
+.event-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.event-status-badge-cancelled {
+  background: rgba(112, 24, 24, 0.12);
+  border: 1px solid rgba(112, 24, 24, 0.26);
+  color: #7a1f1f;
+}
+
+.event-status-badge-postponed {
+  background: rgba(129, 92, 15, 0.12);
+  border: 1px solid rgba(129, 92, 15, 0.24);
+  color: #7a5208;
+}
+
+.event-status-badge-ongoing {
+  background: rgba(123, 45, 38, 0.12);
+  border: 1px solid rgba(123, 45, 38, 0.24);
+  color: #7b2d26;
 }
 
 .event-title {
@@ -211,6 +270,10 @@ useSeoMeta({
 
 .content-block-summary {
   margin-top: 24px;
+}
+
+.event-sheet-muted {
+  opacity: 0.88;
 }
 
 .info-section,
@@ -275,6 +338,12 @@ useSeoMeta({
   max-width: 100%;
   border-radius: 12px;
   border: 1px solid rgba(92, 67, 38, 0.16);
+}
+
+.status-notice {
+  margin: 28px 0 0;
+  color: #7a1f1f;
+  font-weight: 700;
 }
 
 .action-button {

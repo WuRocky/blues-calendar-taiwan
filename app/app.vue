@@ -3,17 +3,16 @@ const localePath = useLocalePath()
 const { t, locale } = useI18n()
 const config = useRuntimeConfig()
 const localeHead = useLocaleHead({
-  addDirAttribute: true,
-  identifierAttribute: 'id',
-  addSeoAttributes: true
+  lang: true,
+  dir: true,
+  seo: true
 })
 
 useHead(() => ({
-  htmlAttrs: {
-    lang: locale.value
-  },
+  htmlAttrs: localeHead.value.htmlAttrs,
   title: t('site.title'),
   meta: [
+    ...localeHead.value.meta,
     {
       name: 'description',
       content: t('site.description')
