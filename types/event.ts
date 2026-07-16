@@ -8,7 +8,14 @@ export type EventType =
   | 'festival'
   | 'other'
 
-export interface EventItem {
+export type EventTimeStatus =
+  | 'upcoming'
+  | 'ongoing'
+  | 'ended'
+  | 'unscheduled'
+  | 'invalid'
+
+export interface BaseEventItem {
   id: string
   slug: string
   name: string
@@ -23,6 +30,8 @@ export interface EventItem {
   address: string
   city: string
   organizer: string
+  weekday: string | null
+  weekdayOrder: number | null
   price: string
   level: string
   registrationUrl: string
@@ -30,4 +39,8 @@ export interface EventItem {
   recurring: boolean
   recurringText: string
   published: boolean
+}
+
+export interface EventItem extends BaseEventItem {
+  timeStatus: EventTimeStatus
 }

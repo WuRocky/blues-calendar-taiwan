@@ -1,10 +1,11 @@
 import { createError, useRuntimeConfig } from '#imports'
-import dayjs from 'dayjs'
 import { Client, isFullDatabase } from '@notionhq/client'
 import { z } from 'zod'
-import type { EventItem, EventType } from '~~/types/event'
+import { evaluateEventTime, normalizeNotionDateTime, shouldDisplayPublicEvent, sortEventsByDisplayPriority, withEventTimeStatus } from '~~/lib/event-time'
+import type { BaseEventItem, EventItem, EventType } from '~~/types/event'
 
 const publicSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+const EVENTS_CACHE_TTL_SECONDS = 300
 
 const eventSchema = z.object({
   id: z.string().default(''),
@@ -21,6 +22,8 @@ const eventSchema = z.object({
   address: z.string().default(''),
   city: z.string().default(''),
   organizer: z.string().default(''),
+  weekday: z.string().nullable().default(null),
+  weekdayOrder: z.number().nullable().default(null),
   price: z.string().default(''),
   level: z.string().default(''),
   registrationUrl: z.string().default(''),
@@ -89,6 +92,11 @@ function getUrl(page: any, name: string) {
   return getProperty(page, name)?.url || ''
 }
 
+function getNumber(page: any, name: string) {
+  const value = getProperty(page, name)?.number
+  return typeof value === 'number' ? value : null
+}
+
 function getDate(page: any, name: string) {
   return getProperty(page, name)?.date?.start || null
 }
@@ -142,6 +150,30 @@ function warnInvalidPublicEvent(page: any, reason: string, slug: string) {
   const details = slug ? `slug="${slug}"` : 'slug=<empty>'
 
   console.warn(`[events] Skipping published event ${pageId}: ${reason} (${details})`)
+}
+
+function warnInvalidPublicEventTime(event: BaseEventItem, reason: string) {
+  if (!import.meta.dev) {
+    return
+  }
+
+  const identifier = event.slug || event.id || 'unknown'
+  const eventName = event.name || 'Untitled Event'
+
+  console.warn(`[events] Skipping published event ${identifier}: ${reason} (name="${eventName}")`)
+}
+
+interface MappedEventResult {
+  event: BaseEventItem
+  timeIssues: string[]
+}
+
+function logNotionCacheMiss(scope: 'events' | 'data-source') {
+  if (!import.meta.dev) {
+    return
+  }
+
+  console.info(`[events] Notion ${scope} cache miss`)
 }
 
 function getValidatedPublicSlug(page: any) {
@@ -210,15 +242,28 @@ async function getEventsDataSourceId(client: Client, databaseId: string) {
   return dataSourceId
 }
 
-export function mapNotionPageToEvent(page: any, description = ''): EventItem {
+const getCachedEventsDataSourceId = defineCachedFunction(async (databaseId: string) => {
+  logNotionCacheMiss('data-source')
+
+  const client = getNotionClient()
+  return getEventsDataSourceId(client, databaseId)
+}, {
+  name: 'notion-events-data-source-id',
+  group: 'notion',
+  maxAge: EVENTS_CACHE_TTL_SECONDS,
+  swr: false,
+  getKey: (databaseId: string) => databaseId
+})
+
+function mapNotionPageToEventResult(page: any, description = ''): MappedEventResult {
   const slug = getValidatedPublicSlug(page)
 
   if (!slug) {
     throw new Error('Invalid public slug')
   }
 
-  const startTime = getDate(page, 'Start Time')
-  const endTime = getDate(page, 'End Time')
+  const normalizedStartTime = normalizeNotionDateTime(getDate(page, 'Start Time'), 'start')
+  const normalizedEndTime = normalizeNotionDateTime(getDate(page, 'End Time'), 'end')
   const event = eventSchema.parse({
     id: page?.id || '',
     slug,
@@ -227,13 +272,15 @@ export function mapNotionPageToEvent(page: any, description = ''): EventItem {
     eventType: normalizeEventType(getSelect(page, 'Event Type') || 'other'),
     summary: getRichText(page, 'Summary'),
     description: description || '',
-    startTime,
-    endTime,
+    startTime: normalizedStartTime.value,
+    endTime: normalizedEndTime.value,
     venueName: getRichText(page, 'Venue Name'),
     venueUrl: getUrl(page, 'Venue URL'),
     address: getRichText(page, 'Address'),
     city: getSelect(page, 'City') || getRichText(page, 'City'),
     organizer: getRichText(page, 'Organizer'),
+    weekday: getSelect(page, 'Weekday') || null,
+    weekdayOrder: getNumber(page, 'Weekday Order'),
     price: getPlainTextProperty(page, 'Price'),
     level: getSelect(page, 'Level') || getPlainTextProperty(page, 'Level'),
     registrationUrl: getUrl(page, 'Registration URL'),
@@ -244,24 +291,33 @@ export function mapNotionPageToEvent(page: any, description = ''): EventItem {
   })
 
   return {
-    ...event,
-    startTime: event.startTime ? dayjs(event.startTime).toISOString() : null,
-    endTime: event.endTime ? dayjs(event.endTime).toISOString() : null
+    event: {
+      ...event
+    },
+    timeIssues: [normalizedStartTime.reason, normalizedEndTime.reason].filter((reason): reason is string => Boolean(reason))
   }
 }
 
-export async function getPublishedEvents() {
-  const config = useRuntimeConfig()
-
-  if (!config.notionEventsDatabaseId) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Missing NOTION_EVENTS_DATABASE_ID'
-    })
+function createEventItemWithTimeStatus(event: BaseEventItem, timeIssues: string[] = []): EventItem {
+  if (timeIssues.length > 0) {
+    return {
+      ...event,
+      timeStatus: 'invalid'
+    }
   }
 
+  return withEventTimeStatus(event)
+}
+
+export function mapNotionPageToEvent(page: any, description = ''): BaseEventItem {
+  return mapNotionPageToEventResult(page, description).event
+}
+
+const getCachedPublishedEventSource = defineCachedFunction(async (databaseId: string) => {
+  logNotionCacheMiss('events')
+
   const client = getNotionClient()
-  const dataSourceId = await getEventsDataSourceId(client, config.notionEventsDatabaseId)
+  const dataSourceId = await getCachedEventsDataSourceId(databaseId)
   const response = await client.dataSources.query({
     data_source_id: dataSourceId,
     filter: {
@@ -281,12 +337,48 @@ export async function getPublishedEvents() {
 
   return response.results.flatMap((page: any) => {
     try {
-      return [mapNotionPageToEvent(page)]
+      return [mapNotionPageToEventResult(page)]
     }
     catch {
       return []
     }
   })
+}, {
+  name: 'notion-published-events-source',
+  group: 'notion',
+  maxAge: EVENTS_CACHE_TTL_SECONDS,
+  swr: false,
+  getKey: (databaseId: string) => databaseId
+})
+
+export async function getPublishedEvents() {
+  const config = useRuntimeConfig()
+
+  if (!config.notionEventsDatabaseId) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Missing NOTION_EVENTS_DATABASE_ID'
+    })
+  }
+
+  const publishedSource = await getCachedPublishedEventSource(config.notionEventsDatabaseId)
+
+  const events = publishedSource.flatMap(({ event: mappedEvent, timeIssues }) => {
+    const event = createEventItemWithTimeStatus(mappedEvent, timeIssues)
+    const { reason } = evaluateEventTime(event)
+
+    if (!shouldDisplayPublicEvent(event)) {
+      if (event.timeStatus === 'invalid') {
+        warnInvalidPublicEventTime(event, timeIssues[0] || reason || 'invalid event time')
+      }
+
+      return []
+    }
+
+    return [event]
+  })
+
+  return sortEventsByDisplayPriority(events)
 }
 
 export async function getEventBySlug(slug: string) {
@@ -300,7 +392,7 @@ export async function getEventBySlug(slug: string) {
   }
 
   const client = getNotionClient()
-  const dataSourceId = await getEventsDataSourceId(client, config.notionEventsDatabaseId)
+  const dataSourceId = await getCachedEventsDataSourceId(config.notionEventsDatabaseId)
   const response = await client.dataSources.query({
     data_source_id: dataSourceId,
     filter: {
@@ -334,11 +426,11 @@ export async function getEventBySlug(slug: string) {
     return null
   }
 
-  const mapped = mapNotionPageToEvent(page)
+  const { event: mapped, timeIssues } = mapNotionPageToEventResult(page)
   const description = await getPageDescription(client, mapped.id)
 
-  return {
+  return createEventItemWithTimeStatus({
     ...mapped,
     description: description || mapped.description
-  }
+  }, timeIssues)
 }

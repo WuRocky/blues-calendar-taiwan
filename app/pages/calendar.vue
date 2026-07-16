@@ -2,6 +2,7 @@
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import { shouldDisplayCalendarEvent } from '~~/lib/event-time'
 import type { EventItem } from '~~/types/event'
 
 dayjs.extend(utc)
@@ -42,18 +43,13 @@ function mapFilterType(eventType: string): SpecificEventTypeFilter {
 }
 
 const filteredEvents = computed(() => {
-  const sorted = [...(events.value || [])].sort((a, b) => {
-    if (!a.startTime && !b.startTime) return 0
-    if (!a.startTime) return 1
-    if (!b.startTime) return -1
-    return a.startTime.localeCompare(b.startTime)
-  })
+  const visibleEvents = (events.value || []).filter((eventItem) => shouldDisplayCalendarEvent(eventItem))
 
   if (activeFilter.value === 'all') {
-    return sorted
+    return visibleEvents
   }
 
-  return sorted.filter((eventItem) => mapFilterType(eventItem.eventType) === activeFilter.value)
+  return visibleEvents.filter((eventItem) => mapFilterType(eventItem.eventType) === activeFilter.value)
 })
 
 function formatDate(date: string | null) {
@@ -92,6 +88,10 @@ function getDateBadge(eventItem: EventItem) {
 
 function getEventTypeLabel(eventType: string) {
   return t(`filters.${mapFilterType(eventType)}`)
+}
+
+function isOngoingEvent(eventItem: EventItem) {
+  return eventItem.timeStatus === 'ongoing'
 }
 
 function getDisplayTime(eventItem: EventItem) {
@@ -157,7 +157,10 @@ useSeoMeta({
           <div class="event-content">
             <div class="event-head">
               <div>
-                <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+                <div class="event-tag-row">
+                  <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+                  <span v-if="isOngoingEvent(eventItem)" class="event-live-badge">進行中</span>
+                </div>
                 <h2 class="event-title">{{ eventItem.name }}</h2>
               </div>
               <span class="event-link">{{ $t('event.viewDetails') }}</span>
@@ -221,6 +224,29 @@ useSeoMeta({
 .state-copy,
 .event-meta {
   color: #d7c8aa;
+}
+
+.event-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.event-tag-row .event-tag {
+  margin: 0;
+}
+
+.event-live-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #7b2d26;
+  color: #f9edd8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .filter-row {

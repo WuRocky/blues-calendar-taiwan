@@ -2,6 +2,7 @@
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import { isRegularClass, shouldDisplayCalendarEvent, sortRegularClasses } from '~~/lib/event-time'
 import type { EventItem } from '~~/types/event'
 
 dayjs.extend(utc)
@@ -16,23 +17,15 @@ const { data: events, error } = await useFetch<EventItem[]>('/api/events', {
 })
 
 const regularWeeklyClasses = computed(() => {
-  return [...(events.value || [])]
-    .filter((eventItem) => eventItem.eventType === 'class' || eventItem.recurring)
-    .sort((a, b) => {
-      const organizerCompare = (a.organizer || '').localeCompare(b.organizer || '')
-      if (organizerCompare !== 0) {
-        return organizerCompare
-      }
-
-      return (a.name || '').localeCompare(b.name || '')
-    })
+  return sortRegularClasses(
+    (events.value || []).filter((eventItem) => isRegularClass(eventItem))
+  )
 })
 
 const upcomingEvents = computed(() => {
   return [...(events.value || [])]
+    .filter((eventItem) => shouldDisplayCalendarEvent(eventItem))
     .filter((eventItem) => ['workshop', 'social', 'event'].includes(mapPrimaryType(eventItem.eventType)))
-    .filter((eventItem) => Boolean(eventItem.startTime))
-    .sort((a, b) => a.startTime!.localeCompare(b.startTime!))
 })
 
 function mapPrimaryType(eventType: string) {
@@ -107,6 +100,10 @@ function getEventTypeLabel(eventType: string) {
   return t(`filters.${mapPrimaryType(eventType)}`)
 }
 
+function isOngoingEvent(eventItem: EventItem) {
+  return eventItem.timeStatus === 'ongoing'
+}
+
 useSeoMeta({
   title: () => t('site.title'),
   description: () => t('site.description')
@@ -162,7 +159,10 @@ useSeoMeta({
           </div>
 
           <div class="event-card-body">
-            <p class="event-tag">{{ $t('filters.class') }}</p>
+            <div class="event-tag-row">
+              <p class="event-tag">{{ $t('filters.class') }}</p>
+              <span v-if="isOngoingEvent(eventItem)" class="event-live-badge">進行中</span>
+            </div>
             <h3 class="event-title">{{ eventItem.name }}</h3>
             <p class="event-meta">{{ eventItem.organizer || $t('common.tbdOrganizer') }}</p>
             <p class="event-meta">
@@ -171,6 +171,7 @@ useSeoMeta({
             <p class="event-meta">
               {{ eventItem.city || $t('common.tbdCity') }}
             </p>
+            <p v-if="eventItem.weekday" class="event-meta event-weekday">{{ eventItem.weekday }}</p>
             <p class="event-meta event-recurring">{{ getDisplayTime(eventItem) }}</p>
             <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
             <span class="event-link">{{ $t('event.viewDetails') }}</span>
@@ -207,7 +208,10 @@ useSeoMeta({
           </div>
 
           <div class="event-card-body">
-            <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+            <div class="event-tag-row">
+              <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+              <span v-if="isOngoingEvent(eventItem)" class="event-live-badge">進行中</span>
+            </div>
             <h3 class="event-title">{{ eventItem.name }}</h3>
             <p class="event-meta">{{ formatDate(eventItem.startTime) }}</p>
             <p class="event-meta">
@@ -256,6 +260,29 @@ useSeoMeta({
     radial-gradient(circle at top right, rgba(142, 35, 35, 0.18), transparent 28%),
     radial-gradient(circle at left center, rgba(183, 140, 63, 0.12), transparent 22%);
   pointer-events: none;
+}
+
+.event-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.event-tag-row .event-tag {
+  margin: 0;
+}
+
+.event-live-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #7b2d26;
+  color: #f9edd8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .hero-kicker,
