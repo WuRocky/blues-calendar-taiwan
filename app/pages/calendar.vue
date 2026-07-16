@@ -7,15 +7,25 @@ import type { EventItem } from '~~/types/event'
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
+type EventTypeFilter =
+  | 'all'
+  | 'class'
+  | 'workshop'
+  | 'social'
+  | 'event'
+
+type SpecificEventTypeFilter = Exclude<EventTypeFilter, 'all'>
+type FilterOption = { value: EventTypeFilter, label: string }
+
 const { t } = useI18n()
 const localePath = useLocalePath()
-const activeFilter = ref<'all' | 'class' | 'workshop' | 'social' | 'event'>('all')
+const activeFilter = ref<EventTypeFilter>('all')
 
 const { data: events, error } = await useFetch<EventItem[]>('/api/events', {
   default: () => []
 })
 
-const filterOptions = computed(() => [
+const filterOptions = computed<FilterOption[]>(() => [
   { value: 'all', label: t('filters.all') },
   { value: 'class', label: t('filters.class') },
   { value: 'workshop', label: t('filters.workshop') },
@@ -23,7 +33,7 @@ const filterOptions = computed(() => [
   { value: 'event', label: t('filters.event') }
 ])
 
-function mapFilterType(eventType: string) {
+function mapFilterType(eventType: string): SpecificEventTypeFilter {
   const normalized = eventType.toLowerCase()
   if (normalized === 'class') return 'class'
   if (normalized === 'workshop') return 'workshop'

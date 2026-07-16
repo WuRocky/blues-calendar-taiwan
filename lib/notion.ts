@@ -1,8 +1,10 @@
 import { createError, useRuntimeConfig } from '#imports'
 import dayjs from 'dayjs'
-import { Client } from '@notionhq/client'
+import { Client, isFullDatabase } from '@notionhq/client'
 import { z } from 'zod'
 import type { EventItem, EventType } from '~~/types/event'
+
+const publicSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 
 const eventSchema = z.object({
   id: z.string().default(''),
@@ -131,6 +133,35 @@ function getPlainTextProperty(page: any, name: string) {
   return property.plain_text || ''
 }
 
+function warnInvalidPublicEvent(page: any, reason: string, slug: string) {
+  if (!import.meta.dev) {
+    return
+  }
+
+  const pageId = typeof page?.id === 'string' ? page.id : 'unknown'
+  const details = slug ? `slug="${slug}"` : 'slug=<empty>'
+
+  console.warn(`[events] Skipping published event ${pageId}: ${reason} (${details})`)
+}
+
+function getValidatedPublicSlug(page: any) {
+  const slug = getRichText(page, 'Slug')
+
+  if (!slug) {
+    warnInvalidPublicEvent(page, 'missing Slug', slug)
+    return null
+  }
+
+  const result = publicSlugSchema.safeParse(slug)
+
+  if (!result.success) {
+    warnInvalidPublicEvent(page, 'invalid Slug format', slug)
+    return null
+  }
+
+  return result.data
+}
+
 async function getPageDescription(client: Client, pageId: string) {
   try {
     const response = await client.blocks.children.list({
@@ -160,6 +191,13 @@ async function getEventsDataSourceId(client: Client, databaseId: string) {
     database_id: databaseId
   })
 
+  if (!isFullDatabase(database)) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: `Unexpected partial Notion database response for: ${databaseId}`
+    })
+  }
+
   const dataSourceId = database.data_sources?.[0]?.id
 
   if (!dataSourceId) {
@@ -173,11 +211,17 @@ async function getEventsDataSourceId(client: Client, databaseId: string) {
 }
 
 export function mapNotionPageToEvent(page: any, description = ''): EventItem {
+  const slug = getValidatedPublicSlug(page)
+
+  if (!slug) {
+    throw new Error('Invalid public slug')
+  }
+
   const startTime = getDate(page, 'Start Time')
   const endTime = getDate(page, 'End Time')
   const event = eventSchema.parse({
     id: page?.id || '',
-    slug: getRichText(page, 'Slug'),
+    slug,
     name: getTitle(page, 'Name'),
     status: getSelect(page, 'Status') || 'Draft',
     eventType: normalizeEventType(getSelect(page, 'Event Type') || 'other'),
@@ -201,7 +245,6 @@ export function mapNotionPageToEvent(page: any, description = ''): EventItem {
 
   return {
     ...event,
-    slug: event.slug || page?.id || '',
     startTime: event.startTime ? dayjs(event.startTime).toISOString() : null,
     endTime: event.endTime ? dayjs(event.endTime).toISOString() : null
   }
@@ -236,7 +279,14 @@ export async function getPublishedEvents() {
     page_size: 100
   })
 
-  return response.results.map((page: any) => mapNotionPageToEvent(page))
+  return response.results.flatMap((page: any) => {
+    try {
+      return [mapNotionPageToEvent(page)]
+    }
+    catch {
+      return []
+    }
+  })
 }
 
 export async function getEventBySlug(slug: string) {
@@ -275,6 +325,12 @@ export async function getEventBySlug(slug: string) {
   const page = response.results?.[0]
 
   if (!page) {
+    return null
+  }
+
+  const validatedSlug = getValidatedPublicSlug(page)
+
+  if (!validatedSlug) {
     return null
   }
 
