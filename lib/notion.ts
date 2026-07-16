@@ -4,8 +4,9 @@ import type { QueryDataSourceResponse } from '@notionhq/client/build/src/api-end
 import type { ListBlockChildrenResponse } from '@notionhq/client/build/src/api-endpoints/blocks'
 import { z } from 'zod'
 import { evaluateEventTime, normalizeNotionDateTime, shouldDisplayPublicEvent, sortEventsByDisplayPriority, withEventTimeStatus } from '~~/lib/event-time'
+import { normalizeEventStatus } from '~~/lib/event-status'
 import { collectPaginatedNotionResults } from '~~/lib/notion-pagination'
-import type { BaseEventItem, EventItem, EventType } from '~~/types/event'
+import type { BaseEventItem, EventItem, EventStatus, EventType } from '~~/types/event'
 
 const publicSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const EVENTS_CACHE_TTL_SECONDS = 300
@@ -15,6 +16,7 @@ const eventSchema = z.object({
   slug: z.string().default(''),
   name: z.string().default('Untitled Event'),
   status: z.string().default('Draft'),
+  eventStatus: z.enum(['scheduled', 'cancelled', 'postponed']).default('scheduled'),
   eventType: z.enum(['class', 'social', 'event', 'open-floor', 'party', 'workshop', 'festival', 'other']).default('other'),
   summary: z.string().default(''),
   description: z.string().default(''),
@@ -166,6 +168,18 @@ function warnInvalidPublicEventTime(event: BaseEventItem, reason: string) {
   console.warn(`[events] Skipping published event ${identifier}: ${reason} (name="${eventName}")`)
 }
 
+function warnFallbackEventStatus(page: any, reason: string, rawValue: string) {
+  if (!import.meta.dev) {
+    return
+  }
+
+  const pageId = typeof page?.id === 'string' ? page.id : 'unknown'
+  const eventName = getTitle(page, 'Name') || 'Untitled Event'
+  const rawDetails = rawValue ? `raw="${rawValue}"` : 'raw=<empty>'
+
+  console.warn(`[events] Falling back Event Status for ${pageId}: ${reason} (name="${eventName}", ${rawDetails})`)
+}
+
 interface MappedEventResult {
   event: BaseEventItem
   timeIssues: string[]
@@ -177,6 +191,17 @@ function logNotionCacheMiss(scope: 'events' | 'data-source') {
   }
 
   console.info(`[events] Notion ${scope} cache miss`)
+}
+
+function mapEventStatus(page: any): EventStatus {
+  const rawValue = getSelect(page, 'Event Status')
+  const { eventStatus, warningReason } = normalizeEventStatus(rawValue)
+
+  if (warningReason) {
+    warnFallbackEventStatus(page, warningReason, rawValue)
+  }
+
+  return eventStatus
 }
 
 function getValidatedPublicSlug(page: any) {
@@ -275,6 +300,7 @@ function mapNotionPageToEventResult(page: any, description = ''): MappedEventRes
     slug,
     name: getTitle(page, 'Name'),
     status: getSelect(page, 'Status') || 'Draft',
+    eventStatus: mapEventStatus(page),
     eventType: normalizeEventType(getSelect(page, 'Event Type') || 'other'),
     summary: getRichText(page, 'Summary'),
     description: description || '',

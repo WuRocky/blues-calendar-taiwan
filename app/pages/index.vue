@@ -2,6 +2,7 @@
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import { getEventDisplayStatus, getEventDisplayStatusLabel, isEventStatusMuted } from '~~/lib/event-status'
 import { isRegularClass, shouldDisplayCalendarEvent, sortRegularClasses } from '~~/lib/event-time'
 import type { EventItem } from '~~/types/event'
 
@@ -100,8 +101,20 @@ function getEventTypeLabel(eventType: string) {
   return t(`filters.${mapPrimaryType(eventType)}`)
 }
 
-function isOngoingEvent(eventItem: EventItem) {
-  return eventItem.timeStatus === 'ongoing'
+function getStatusLabel(eventItem: EventItem) {
+  return getEventDisplayStatusLabel(getEventDisplayStatus(eventItem))
+}
+
+function getStatusBadgeClass(eventItem: EventItem) {
+  if (eventItem.eventStatus === 'cancelled') {
+    return 'event-status-badge-cancelled'
+  }
+
+  if (eventItem.eventStatus === 'postponed') {
+    return 'event-status-badge-postponed'
+  }
+
+  return 'event-live-badge'
 }
 
 useSeoMeta({
@@ -151,6 +164,7 @@ useSeoMeta({
           :key="eventItem.id"
           :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
           class="event-card event-card-regular event-card-link"
+          :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
           :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
         >
           <div class="date-badge date-badge-recurring">
@@ -161,7 +175,7 @@ useSeoMeta({
           <div class="event-card-body">
             <div class="event-tag-row">
               <p class="event-tag">{{ $t('filters.class') }}</p>
-              <span v-if="isOngoingEvent(eventItem)" class="event-live-badge">進行中</span>
+              <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
             </div>
             <h3 class="event-title">{{ eventItem.name }}</h3>
             <p class="event-meta">{{ eventItem.organizer || $t('common.tbdOrganizer') }}</p>
@@ -200,6 +214,7 @@ useSeoMeta({
           :key="eventItem.id"
           :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
           class="event-card event-card-link"
+          :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
           :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
         >
           <div class="date-badge">
@@ -210,7 +225,7 @@ useSeoMeta({
           <div class="event-card-body">
             <div class="event-tag-row">
               <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
-              <span v-if="isOngoingEvent(eventItem)" class="event-live-badge">進行中</span>
+              <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
             </div>
             <h3 class="event-title">{{ eventItem.name }}</h3>
             <p class="event-meta">{{ formatDate(eventItem.startTime) }}</p>
@@ -283,6 +298,33 @@ useSeoMeta({
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+
+.event-status-badge-cancelled,
+.event-status-badge-postponed {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.event-status-badge-cancelled {
+  background: rgba(112, 24, 24, 0.18);
+  color: #f3b4ad;
+  border: 1px solid rgba(243, 180, 173, 0.28);
+}
+
+.event-status-badge-postponed {
+  background: rgba(129, 92, 15, 0.18);
+  color: #f0d59c;
+  border: 1px solid rgba(240, 213, 156, 0.28);
+}
+
+.event-card-muted {
+  opacity: 0.82;
 }
 
 .hero-kicker,

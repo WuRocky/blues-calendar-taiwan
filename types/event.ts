@@ -15,11 +15,17 @@ export type EventTimeStatus =
   | 'unscheduled'
   | 'invalid'
 
+export type EventStatus =
+  | 'scheduled'
+  | 'cancelled'
+  | 'postponed'
+
 export interface BaseEventItem {
   id: string
   slug: string
   name: string
   status: string
+  eventStatus: EventStatus
   eventType: EventType
   summary: string
   description: string

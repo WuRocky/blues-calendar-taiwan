@@ -7,7 +7,12 @@ import jitiFactory from 'jiti'
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
-const jiti = jitiFactory(import.meta.url)
+const projectRoot = new URL('../', import.meta.url).pathname
+const jiti = jitiFactory(import.meta.url, {
+  alias: {
+    '~~': projectRoot
+  }
+})
 const {
   TAIPEI_TIMEZONE,
   evaluateEventTime,
@@ -27,6 +32,7 @@ function makeEvent(overrides) {
     slug: overrides.slug || overrides.id || 'event',
     name: overrides.name || 'Event',
     status: 'Published',
+    eventStatus: 'scheduled',
     eventType: 'event',
     summary: '',
     description: '',

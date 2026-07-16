@@ -1,6 +1,7 @@
 import dayjs, { type Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import { shouldRetainCalendarEventByTimeStatus, shouldRetainEventByTimeStatus } from '~~/lib/event-status'
 import type { BaseEventItem, EventItem, EventTimeStatus } from '~~/types/event'
 
 dayjs.extend(utc)
@@ -152,11 +153,11 @@ export function withEventTimeStatus<T extends BaseEventItem>(event: T, now = day
 }
 
 export function shouldDisplayPublicEvent(event: Pick<EventItem, 'timeStatus'>) {
-  return event.timeStatus === 'ongoing' || event.timeStatus === 'upcoming' || event.timeStatus === 'unscheduled'
+  return shouldRetainEventByTimeStatus(event)
 }
 
 export function shouldDisplayCalendarEvent(event: Pick<EventItem, 'timeStatus'>) {
-  return event.timeStatus === 'ongoing' || event.timeStatus === 'upcoming'
+  return shouldRetainCalendarEventByTimeStatus(event)
 }
 
 function compareByStartTime(a: Pick<EventItem, 'startTime'>, b: Pick<EventItem, 'startTime'>) {
