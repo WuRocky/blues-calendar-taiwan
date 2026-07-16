@@ -1,7 +1,10 @@
 import { createError, useRuntimeConfig } from '#imports'
 import { Client, isFullDatabase } from '@notionhq/client'
+import type { QueryDataSourceResponse } from '@notionhq/client/build/src/api-endpoints/data-sources'
+import type { ListBlockChildrenResponse } from '@notionhq/client/build/src/api-endpoints/blocks'
 import { z } from 'zod'
 import { evaluateEventTime, normalizeNotionDateTime, shouldDisplayPublicEvent, sortEventsByDisplayPriority, withEventTimeStatus } from '~~/lib/event-time'
+import { collectPaginatedNotionResults } from '~~/lib/notion-pagination'
 import type { BaseEventItem, EventItem, EventType } from '~~/types/event'
 
 const publicSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
@@ -195,27 +198,30 @@ function getValidatedPublicSlug(page: any) {
 }
 
 async function getPageDescription(client: Client, pageId: string) {
-  try {
-    const response = await client.blocks.children.list({
-      block_id: pageId,
-      page_size: 100
-    })
-
-    return response.results
-      .map((block: any) => {
-        const richText = block?.[block.type]?.rich_text
-        if (!Array.isArray(richText)) {
-          return ''
-        }
-
-        return richText.map((item: any) => item?.plain_text || '').join('')
+  const results = await collectPaginatedNotionResults(
+    async (startCursor): Promise<ListBlockChildrenResponse> => {
+      return client.blocks.children.list({
+        block_id: pageId,
+        start_cursor: startCursor ?? undefined,
+        page_size: 100
       })
-      .filter(Boolean)
-      .join('\n')
-  }
-  catch {
-    return ''
-  }
+    },
+    {
+      scope: `blocks for page ${pageId}`
+    }
+  )
+
+  return results
+    .map((block: any) => {
+      const richText = block?.[block.type]?.rich_text
+      if (!Array.isArray(richText)) {
+        return ''
+      }
+
+      return richText.map((item: any) => item?.plain_text || '').join('')
+    })
+    .filter(Boolean)
+    .join('\n')
 }
 
 async function getEventsDataSourceId(client: Client, databaseId: string) {
@@ -318,24 +324,33 @@ const getCachedPublishedEventSource = defineCachedFunction(async (databaseId: st
 
   const client = getNotionClient()
   const dataSourceId = await getCachedEventsDataSourceId(databaseId)
-  const response = await client.dataSources.query({
-    data_source_id: dataSourceId,
-    filter: {
-      property: 'Status',
-      select: {
-        equals: 'Published'
-      }
-    },
-    sorts: [
-      {
-        property: 'Start Time',
-        direction: 'ascending'
-      }
-    ],
-    page_size: 100
-  })
 
-  return response.results.flatMap((page: any) => {
+  const results = await collectPaginatedNotionResults(
+    async (startCursor): Promise<QueryDataSourceResponse> => {
+      return client.dataSources.query({
+        data_source_id: dataSourceId,
+        filter: {
+          property: 'Status',
+          select: {
+            equals: 'Published'
+          }
+        },
+        sorts: [
+          {
+            property: 'Start Time',
+            direction: 'ascending'
+          }
+        ],
+        start_cursor: startCursor ?? undefined,
+        page_size: 100
+      })
+    },
+    {
+      scope: 'published events'
+    }
+  )
+
+  return results.flatMap((page: any) => {
     try {
       return [mapNotionPageToEventResult(page)]
     }
