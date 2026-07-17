@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { resolveTallyFormUrl } from '~~/lib/event-report'
+
 const localePath = useLocalePath()
 const { t, locale } = useI18n()
 const config = useRuntimeConfig()
@@ -20,6 +22,16 @@ useHead(() => ({
   ],
   link: localeHead.value.link
 }))
+
+const submissionFormUrl = computed(() => {
+  const { url, warningReason } = resolveTallyFormUrl(config.public.eventSubmissionFormUrl)
+
+  if (import.meta.dev && warningReason) {
+    console.warn(`[forms] Submission form disabled: ${warningReason}`)
+  }
+
+  return url
+})
 </script>
 
 <template>
@@ -38,10 +50,11 @@ useHead(() => ({
           {{ $t('nav.calendar') }}
         </NuxtLink>
         <a
-          v-if="config.public.tallyFormUrl"
-          :href="config.public.tallyFormUrl"
+          v-if="submissionFormUrl"
+          :href="submissionFormUrl"
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
+          :aria-label="$t('nav.submit')"
         >
           {{ $t('nav.submit') }}
         </a>

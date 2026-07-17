@@ -2,6 +2,7 @@
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import { resolveTallyFormUrl } from '~~/lib/event-report'
 import { getEventDisplayStatus, getEventDisplayStatusLabel, isEventStatusMuted } from '~~/lib/event-status'
 import { isRegularClass, shouldDisplayCalendarEvent, sortRegularClasses } from '~~/lib/event-time'
 import type { EventItem } from '~~/types/event'
@@ -12,6 +13,16 @@ dayjs.extend(timezone)
 const config = useRuntimeConfig()
 const localePath = useLocalePath()
 const { t } = useI18n()
+
+const submissionFormUrl = computed(() => {
+  const { url, warningReason } = resolveTallyFormUrl(config.public.eventSubmissionFormUrl)
+
+  if (import.meta.dev && warningReason) {
+    console.warn(`[forms] Submission form disabled on home page: ${warningReason}`)
+  }
+
+  return url
+})
 
 const { data: events, error } = await useFetch<EventItem[]>('/api/events', {
   default: () => []
@@ -136,11 +147,12 @@ useSeoMeta({
           {{ $t('home.viewEvents') }}
         </NuxtLink>
         <a
-          v-if="config.public.tallyFormUrl"
+          v-if="submissionFormUrl"
           class="poster-button"
-          :href="config.public.tallyFormUrl"
+          :href="submissionFormUrl"
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
+          :aria-label="$t('nav.submit')"
         >
           {{ $t('nav.submit') }}
         </a>

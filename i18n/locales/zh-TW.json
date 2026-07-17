@@ -61,7 +61,10 @@
     "summaryTitle": "活動摘要",
     "detailsTitle": "活動詳情",
     "detailTitle": "活動",
-    "detailDescription": "台灣 Blues 活動資訊。"
+    "detailDescription": "台灣 Blues 活動資訊。",
+    "reportTitle": "活動資訊有誤？",
+    "reportDescription": "若時間、地點、價格、報名連結或內容有誤，歡迎協助回報。",
+    "reportAction": "回報資訊錯誤"
   },
   "calendar": {
     "kicker": "All Blues Events",

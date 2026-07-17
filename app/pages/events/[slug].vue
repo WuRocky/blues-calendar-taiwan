@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { buildGoogleCalendarUrl, canAddEventToCalendar } from '~~/lib/event-calendar'
+import { buildEventReportUrl, resolveTallyFormUrl } from '~~/lib/event-report'
 import { buildEventShareText, buildEventShareTitle, buildEventShareUrl, buildLineShareUrl } from '~~/lib/event-sharing'
 import { getEventDisplayStatus, getEventDisplayStatusLabel, getEventRegistrationNotice, isEventRegistrationUnavailable, isEventStatusMuted } from '~~/lib/event-status'
 import type { EventItem } from '~~/types/event'
@@ -102,6 +103,30 @@ const shareText = computed(() => {
 
 const lineShareUrl = computed(() => {
   return eventItem.value ? buildLineShareUrl(eventItem.value, config.public.siteUrl) : null
+})
+
+const reportFormUrl = computed(() => {
+  const { url, warningReason } = resolveTallyFormUrl(config.public.eventReportFormUrl)
+
+  if (import.meta.dev && warningReason) {
+    console.warn(`[forms] Event report form disabled: ${warningReason}`)
+  }
+
+  return url
+})
+
+const eventReportUrl = computed(() => {
+  if (!eventItem.value || !reportFormUrl.value) {
+    return null
+  }
+
+  const url = buildEventReportUrl(eventItem.value, reportFormUrl.value, config.public.siteUrl)
+
+  if (import.meta.dev && !url) {
+    console.warn(`[forms] Event report link disabled for slug="${eventItem.value.slug}"`)
+  }
+
+  return url
 })
 
 function setShareFeedback(message: string, isError = false) {
@@ -378,6 +403,20 @@ useSeoMeta({
           </div>
         </div>
 
+        <div v-if="eventReportUrl" class="content-block report-actions">
+          <h2 class="section-title">{{ $t('event.reportTitle') }}</h2>
+          <p class="report-copy">{{ $t('event.reportDescription') }}</p>
+          <a
+            class="action-button action-button-secondary"
+            :href="eventReportUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            :aria-label="$t('event.reportAction')"
+          >
+            {{ $t('event.reportAction') }}
+          </a>
+        </div>
+
         <p v-if="registrationNotice" class="status-notice">{{ registrationNotice }}</p>
 
         <a
@@ -569,11 +608,19 @@ useSeoMeta({
   margin-top: 28px;
 }
 
+.report-actions {
+  margin-top: 28px;
+}
+
 .calendar-action-row,
 .share-action-row {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.report-copy {
+  margin: 0 0 14px;
 }
 
 .share-actions {

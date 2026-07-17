@@ -61,7 +61,10 @@
     "summaryTitle": "概要",
     "detailsTitle": "詳細",
     "detailTitle": "イベント",
-    "detailDescription": "台湾の Blues イベント情報。"
+    "detailDescription": "台湾の Blues イベント情報。",
+    "reportTitle": "イベント情報に誤りがありますか？",
+    "reportDescription": "時間、会場、料金、申込リンク、内容に誤りがある場合は、ぜひご報告ください。",
+    "reportAction": "情報の誤りを報告"
   },
   "calendar": {
     "kicker": "All Blues Events",

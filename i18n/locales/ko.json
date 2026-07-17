@@ -61,7 +61,10 @@
     "summaryTitle": "요약",
     "detailsTitle": "상세 정보",
     "detailTitle": "이벤트",
-    "detailDescription": "대만 Blues 이벤트 정보."
+    "detailDescription": "대만 Blues 이벤트 정보.",
+    "reportTitle": "이벤트 정보가 잘못되었나요?",
+    "reportDescription": "시간, 장소, 가격, 등록 링크 또는 내용에 오류가 있다면 알려 주세요.",
+    "reportAction": "정보 오류 제보"
   },
   "calendar": {
     "kicker": "All Blues Events",
