@@ -2,6 +2,7 @@
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import { buildGoogleCalendarUrl, canAddEventToCalendar } from '~~/lib/event-calendar'
 import { getEventDisplayStatus, getEventDisplayStatusLabel, getEventRegistrationNotice, isEventRegistrationUnavailable, isEventStatusMuted } from '~~/lib/event-status'
 import type { EventItem } from '~~/types/event'
 
@@ -10,6 +11,7 @@ dayjs.extend(timezone)
 
 const route = useRoute()
 const { t } = useI18n()
+const config = useRuntimeConfig()
 
 const { data: eventItem, error } = await useFetch<EventItem>(`/api/events/${route.params.slug}`)
 
@@ -69,6 +71,16 @@ const registrationNotice = computed(() => {
 
 const isRegistrationUnavailable = computed(() => {
   return eventItem.value ? isEventRegistrationUnavailable(eventItem.value) : false
+})
+
+const googleCalendarUrl = computed(() => {
+  return eventItem.value ? buildGoogleCalendarUrl(eventItem.value, config.public.siteUrl) : null
+})
+
+const icsDownloadUrl = computed(() => {
+  return eventItem.value && canAddEventToCalendar(eventItem.value)
+    ? `/api/events/${eventItem.value.slug}/calendar.ics`
+    : null
 })
 
 useSeoMeta({
@@ -157,6 +169,28 @@ useSeoMeta({
           <p v-for="paragraph in eventItem.description.split('\n').filter(Boolean)" :key="paragraph">
             {{ paragraph }}
           </p>
+        </div>
+
+        <div v-if="googleCalendarUrl && icsDownloadUrl" class="content-block calendar-actions">
+          <h2 class="section-title">加入行事曆</h2>
+          <div class="calendar-action-row">
+            <a
+              class="action-button action-button-secondary"
+              :href="googleCalendarUrl"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="加入 Google Calendar"
+            >
+              加入 Google Calendar
+            </a>
+            <a
+              class="action-button action-button-secondary"
+              :href="icsDownloadUrl"
+              aria-label="下載行事曆檔案"
+            >
+              下載行事曆檔案
+            </a>
+          </div>
         </div>
 
         <p v-if="registrationNotice" class="status-notice">{{ registrationNotice }}</p>
@@ -346,6 +380,16 @@ useSeoMeta({
   font-weight: 700;
 }
 
+.calendar-actions {
+  margin-top: 28px;
+}
+
+.calendar-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .action-button {
   display: inline-flex;
   align-items: center;
@@ -359,9 +403,16 @@ useSeoMeta({
   font-weight: 700;
 }
 
+.action-button-secondary {
+  background: transparent;
+  color: #7b2d26;
+  border: 1px solid rgba(123, 45, 38, 0.3);
+}
+
 .action-button:hover,
 .action-button:focus-visible {
   background: #5a1c1b;
+  color: #f9edd8;
 }
 
 @media (max-width: 700px) {

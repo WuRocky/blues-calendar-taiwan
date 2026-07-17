@@ -31,6 +31,8 @@ export interface BaseEventItem {
   description: string
   startTime: string | null
   endTime: string | null
+  startTimeIsDateOnly: boolean
+  endTimeIsDateOnly: boolean
   venueName: string
   venueUrl: string
   address: string

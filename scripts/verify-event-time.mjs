@@ -38,6 +38,8 @@ function makeEvent(overrides) {
     description: '',
     startTime: null,
     endTime: null,
+    startTimeIsDateOnly: false,
+    endTimeIsDateOnly: false,
     venueName: '',
     venueUrl: '',
     address: '',
