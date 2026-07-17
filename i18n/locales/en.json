@@ -61,7 +61,10 @@
     "summaryTitle": "Summary",
     "detailsTitle": "Details",
     "detailTitle": "Event",
-    "detailDescription": "Blues event information in Taiwan."
+    "detailDescription": "Blues event information in Taiwan.",
+    "reportTitle": "Something wrong with the event info?",
+    "reportDescription": "If the time, venue, price, registration link, or content is incorrect, please help report it.",
+    "reportAction": "Report Incorrect Info"
   },
   "calendar": {
     "kicker": "All Blues Events",

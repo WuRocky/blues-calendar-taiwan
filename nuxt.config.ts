@@ -11,7 +11,8 @@ export default defineNuxtConfig({
     notionEventsDatabaseId: '',
     public: {
       siteUrl: 'http://localhost:3000',
-      tallyFormUrl: '',
+      eventSubmissionFormUrl: '',
+      eventReportFormUrl: '',
     },
   },
   i18n: {

@@ -3,6 +3,8 @@ import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { buildGoogleCalendarUrl, canAddEventToCalendar } from '~~/lib/event-calendar'
+import { buildEventReportUrl, resolveTallyFormUrl } from '~~/lib/event-report'
+import { buildEventShareText, buildEventShareTitle, buildEventShareUrl, buildLineShareUrl } from '~~/lib/event-sharing'
 import { getEventDisplayStatus, getEventDisplayStatusLabel, getEventRegistrationNotice, isEventRegistrationUnavailable, isEventStatusMuted } from '~~/lib/event-status'
 import type { EventItem } from '~~/types/event'
 
@@ -12,6 +14,10 @@ dayjs.extend(timezone)
 const route = useRoute()
 const { t } = useI18n()
 const config = useRuntimeConfig()
+const isWebShareSupported = ref(false)
+const shareFeedback = ref('')
+const shareFeedbackIsError = ref(false)
+let shareFeedbackTimeoutId: ReturnType<typeof setTimeout> | null = null
 
 const { data: eventItem, error } = await useFetch<EventItem>(`/api/events/${route.params.slug}`)
 
@@ -83,6 +89,160 @@ const icsDownloadUrl = computed(() => {
     : null
 })
 
+const shareUrl = computed(() => {
+  return eventItem.value ? buildEventShareUrl(eventItem.value, config.public.siteUrl) : null
+})
+
+const shareTitle = computed(() => {
+  return eventItem.value ? buildEventShareTitle(eventItem.value) : ''
+})
+
+const shareText = computed(() => {
+  return eventItem.value ? buildEventShareText(eventItem.value, config.public.siteUrl) : null
+})
+
+const lineShareUrl = computed(() => {
+  return eventItem.value ? buildLineShareUrl(eventItem.value, config.public.siteUrl) : null
+})
+
+const reportFormUrl = computed(() => {
+  const { url, warningReason } = resolveTallyFormUrl(config.public.eventReportFormUrl)
+
+  if (import.meta.dev && warningReason) {
+    console.warn(`[forms] Event report form disabled: ${warningReason}`)
+  }
+
+  return url
+})
+
+const eventReportUrl = computed(() => {
+  if (!eventItem.value || !reportFormUrl.value) {
+    return null
+  }
+
+  const url = buildEventReportUrl(eventItem.value, reportFormUrl.value, config.public.siteUrl)
+
+  if (import.meta.dev && !url) {
+    console.warn(`[forms] Event report link disabled for slug="${eventItem.value.slug}"`)
+  }
+
+  return url
+})
+
+function setShareFeedback(message: string, isError = false) {
+  shareFeedback.value = message
+  shareFeedbackIsError.value = isError
+
+  if (shareFeedbackTimeoutId) {
+    clearTimeout(shareFeedbackTimeoutId)
+  }
+
+  shareFeedbackTimeoutId = setTimeout(() => {
+    shareFeedback.value = ''
+    shareFeedbackIsError.value = false
+    shareFeedbackTimeoutId = null
+  }, 3000)
+}
+
+function getSharePayload() {
+  if (!shareUrl.value || !shareTitle.value || !shareText.value) {
+    return null
+  }
+
+  return {
+    title: shareTitle.value,
+    text: shareText.value,
+    url: shareUrl.value
+  }
+}
+
+function copyTextWithFallback(text: string) {
+  if (!import.meta.client || typeof document === 'undefined') {
+    return false
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', 'true')
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  textarea.style.pointerEvents = 'none'
+  document.body.appendChild(textarea)
+  textarea.select()
+  textarea.setSelectionRange(0, textarea.value.length)
+
+  try {
+    return document.execCommand('copy')
+  }
+  finally {
+    document.body.removeChild(textarea)
+  }
+}
+
+async function copyEventLink() {
+  if (!shareUrl.value) {
+    setShareFeedback('目前無法產生活動分享連結', true)
+    return
+  }
+
+  try {
+    if (import.meta.client && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareUrl.value)
+    }
+    else if (!copyTextWithFallback(shareUrl.value)) {
+      throw new Error('clipboard unavailable')
+    }
+
+    setShareFeedback('已複製活動連結')
+  }
+  catch {
+    if (copyTextWithFallback(shareUrl.value)) {
+      setShareFeedback('已複製活動連結')
+      return
+    }
+
+    setShareFeedback('無法複製連結，請手動複製網址', true)
+  }
+}
+
+async function shareEventNatively() {
+  const payload = getSharePayload()
+
+  if (!payload) {
+    setShareFeedback('目前無法產生活動分享連結', true)
+    return
+  }
+
+  if (!import.meta.client || typeof navigator === 'undefined' || typeof navigator.share !== 'function') {
+    return
+  }
+
+  try {
+    await navigator.share(payload)
+  }
+  catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return
+    }
+
+    setShareFeedback('無法分享活動，請稍後再試', true)
+  }
+}
+
+function handleLineShareUnavailable() {
+  setShareFeedback('目前無法產生活動分享連結', true)
+}
+
+onMounted(() => {
+  isWebShareSupported.value = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+})
+
+onBeforeUnmount(() => {
+  if (shareFeedbackTimeoutId) {
+    clearTimeout(shareFeedbackTimeoutId)
+  }
+})
+
 useSeoMeta({
   title: () => eventItem.value?.name ? `${eventItem.value.name} | ${t('site.title')}` : `${t('event.detailTitle')} | ${t('site.title')}`,
   description: () => eventItem.value?.summary || t('event.detailDescription')
@@ -110,6 +270,56 @@ useSeoMeta({
         <p v-if="eventItem.recurring && eventItem.recurringText" class="event-recurring">
           {{ eventItem.recurringText }}
         </p>
+        <div class="content-block share-actions">
+          <h2 class="section-title">分享活動</h2>
+          <div class="share-action-row">
+            <button
+              v-if="isWebShareSupported"
+              type="button"
+              class="action-button action-button-secondary"
+              aria-label="分享活動"
+              @click="shareEventNatively"
+            >
+              分享活動
+            </button>
+            <a
+              v-if="lineShareUrl"
+              class="action-button action-button-secondary"
+              :href="lineShareUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="分享到 LINE"
+            >
+              分享到 LINE
+            </a>
+            <button
+              v-else
+              type="button"
+              class="action-button action-button-secondary"
+              aria-label="分享到 LINE"
+              @click="handleLineShareUnavailable"
+            >
+              分享到 LINE
+            </button>
+            <button
+              type="button"
+              class="action-button action-button-secondary"
+              aria-label="複製活動連結"
+              @click="copyEventLink"
+            >
+              複製連結
+            </button>
+          </div>
+          <p
+            v-if="shareFeedback"
+            class="share-feedback"
+            :class="{ 'share-feedback-error': shareFeedbackIsError }"
+            aria-live="polite"
+            role="status"
+          >
+            {{ shareFeedback }}
+          </p>
+        </div>
         <div class="content-block content-block-summary">
           <h2 class="section-title">{{ $t('event.summaryTitle') }}</h2>
           <p>{{ eventItem.summary || $t('common.noSummary') }}</p>
@@ -191,6 +401,20 @@ useSeoMeta({
               下載行事曆檔案
             </a>
           </div>
+        </div>
+
+        <div v-if="eventReportUrl" class="content-block report-actions">
+          <h2 class="section-title">{{ $t('event.reportTitle') }}</h2>
+          <p class="report-copy">{{ $t('event.reportDescription') }}</p>
+          <a
+            class="action-button action-button-secondary"
+            :href="eventReportUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            :aria-label="$t('event.reportAction')"
+          >
+            {{ $t('event.reportAction') }}
+          </a>
         </div>
 
         <p v-if="registrationNotice" class="status-notice">{{ registrationNotice }}</p>
@@ -384,10 +608,33 @@ useSeoMeta({
   margin-top: 28px;
 }
 
-.calendar-action-row {
+.report-actions {
+  margin-top: 28px;
+}
+
+.calendar-action-row,
+.share-action-row {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.report-copy {
+  margin: 0 0 14px;
+}
+
+.share-actions {
+  margin-top: 24px;
+}
+
+.share-feedback {
+  margin: 14px 0 0;
+  color: #245037;
+  font-weight: 700;
+}
+
+.share-feedback-error {
+  color: #7a1f1f;
 }
 
 .action-button {
@@ -396,11 +643,14 @@ useSeoMeta({
   justify-content: center;
   margin-top: 24px;
   padding: 12px 18px;
+  font: inherit;
   border-radius: 999px;
   background: #72292d;
+  border: 1px solid transparent;
   color: #f9edd8;
   text-decoration: none;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .action-button-secondary {

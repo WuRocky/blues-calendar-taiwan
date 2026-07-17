@@ -154,15 +154,19 @@ function toIcsDateTime(value: Dayjs) {
   return value.utc().format('YYYYMMDDTHHmmss[Z]')
 }
 
-function normalizeSiteUrl(siteUrl: string) {
+export function resolveSiteUrl(siteUrl: string) {
   const trimmed = siteUrl.trim().replace(/\/+$/, '')
 
   try {
     return new URL(trimmed).toString().replace(/\/+$/, '')
   }
   catch {
-    return FALLBACK_SITE_URL
+    return null
   }
+}
+
+function normalizeSiteUrl(siteUrl: string) {
+  return resolveSiteUrl(siteUrl) ?? FALLBACK_SITE_URL
 }
 
 export function buildEventDetailUrl(siteUrl: string, slug: string) {
