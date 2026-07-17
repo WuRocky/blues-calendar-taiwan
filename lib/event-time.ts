@@ -18,6 +18,7 @@ export interface EventTimeEvaluation {
 }
 
 interface NormalizedEventTime {
+  isDateOnly: boolean
   reason: string | null
   value: string | null
 }
@@ -51,6 +52,7 @@ function parseStoredEventTime(value: string | null) {
 export function normalizeNotionDateTime(value: string | null, boundary: 'start' | 'end'): NormalizedEventTime {
   if (!value) {
     return {
+      isDateOnly: false,
       reason: null,
       value: null
     }
@@ -60,12 +62,14 @@ export function normalizeNotionDateTime(value: string | null, boundary: 'start' 
 
   if (!parsed.isValid()) {
     return {
+      isDateOnly: DATE_ONLY_PATTERN.test(value),
       reason: `${boundary === 'start' ? 'Start Time' : 'End Time'} is not a valid date`,
       value: null
     }
   }
 
   return {
+    isDateOnly: DATE_ONLY_PATTERN.test(value),
     reason: null,
     value: parsed.toISOString()
   }
