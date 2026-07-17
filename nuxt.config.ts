@@ -7,12 +7,12 @@ export default defineNuxtConfig({
   modules: ['@nuxtjs/i18n'],
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
-    notionToken: process.env.NOTION_TOKEN,
-    notionEventsDatabaseId: process.env.NOTION_EVENTS_DATABASE_ID,
+    notionToken: '',
+    notionEventsDatabaseId: '',
     public: {
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-      tallyFormUrl: process.env.NUXT_PUBLIC_TALLY_FORM_URL || ''
-    }
+      siteUrl: 'http://localhost:3000',
+      tallyFormUrl: '',
+    },
   },
   i18n: {
     defaultLocale: 'zh-TW',
