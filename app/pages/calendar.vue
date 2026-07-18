@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { getEventDisplayStatus, getEventDisplayStatusLabel, isEventStatusMuted } from '~~/lib/event-status'
-import { shouldDisplayCalendarEvent } from '~~/lib/event-time'
+import { isUnscheduledRegularClass, shouldDisplayCalendarListEvent, shouldDisplayClassCalendarEvent, sortRegularClasses } from '~~/lib/event-time'
 import type { EventItem } from '~~/types/event'
 
 dayjs.extend(utc)
@@ -43,14 +43,52 @@ function mapFilterType(eventType: string): SpecificEventTypeFilter {
   return 'event'
 }
 
-const filteredEvents = computed(() => {
-  const visibleEvents = (events.value || []).filter((eventItem) => shouldDisplayCalendarEvent(eventItem))
+const regularClassEvents = computed(() => {
+  return sortRegularClasses(
+    (events.value || []).filter((eventItem) => isUnscheduledRegularClass(eventItem))
+  )
+})
 
+const upcomingAndOngoingEvents = computed(() => {
+  return (events.value || []).filter((eventItem) => {
+    if (!shouldDisplayCalendarListEvent(eventItem)) {
+      return false
+    }
+
+    return !isUnscheduledRegularClass(eventItem)
+  })
+})
+
+const singleClassEvents = computed(() => {
+  return [...(events.value || [])]
+    .filter((eventItem) => shouldDisplayClassCalendarEvent(eventItem) && !isUnscheduledRegularClass(eventItem))
+    .sort((a, b) => {
+      const startCompare = (a.startTime || '').localeCompare(b.startTime || '')
+
+      if (startCompare !== 0) {
+        return startCompare
+      }
+
+      return a.name.localeCompare(b.name)
+    })
+})
+
+const filteredEvents = computed(() => {
   if (activeFilter.value === 'all') {
-    return visibleEvents
+    return [...upcomingAndOngoingEvents.value, ...regularClassEvents.value]
   }
 
-  return visibleEvents.filter((eventItem) => mapFilterType(eventItem.eventType) === activeFilter.value)
+  if (activeFilter.value === 'class') {
+    return [...regularClassEvents.value, ...singleClassEvents.value]
+  }
+
+  return (events.value || []).filter((eventItem) => {
+    if (!shouldDisplayCalendarListEvent(eventItem)) {
+      return false
+    }
+
+    return mapFilterType(eventItem.eventType) === activeFilter.value
+  })
 })
 
 function formatDate(date: string | null) {
@@ -153,46 +191,232 @@ useSeoMeta({
       <p v-else-if="filteredEvents.length === 0" class="state-copy">{{ $t('common.noMatchingEvents') }}</p>
 
       <div v-else class="event-list">
-        <NuxtLink
-          v-for="eventItem in filteredEvents"
-          :key="eventItem.id"
-          :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
-          class="event-card event-card-link"
-          :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
-          :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
-        >
-          <div class="date-badge">
-            <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
-            <span class="date-badge-day" :class="{ 'date-badge-day-small': eventItem.recurring && eventItem.recurringText }">
-              {{ getDateBadge(eventItem).day }}
-            </span>
+        <template v-if="activeFilter === 'all'">
+          <div v-if="regularClassEvents.length" class="calendar-section-heading">
+            <h2>{{ $t('calendar.regularClasses') }}</h2>
           </div>
 
-          <div class="event-content">
-            <div class="event-head">
-              <div>
-                <div class="event-tag-row">
-                  <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
-                  <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
-                </div>
-                <h2 class="event-title">{{ eventItem.name }}</h2>
+          <div v-if="regularClassEvents.length" class="event-list regular-list">
+            <NuxtLink
+              v-for="eventItem in regularClassEvents"
+              :key="eventItem.id"
+              :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
+              class="event-card event-card-link"
+              :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
+              :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
+            >
+              <div class="date-badge">
+                <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
+                <span class="date-badge-day date-badge-day-small">{{ getDateBadge(eventItem).day }}</span>
               </div>
-              <span class="event-link">{{ $t('event.viewDetails') }}</span>
+
+              <div class="event-content">
+                <div class="event-head">
+                  <div>
+                    <div class="event-tag-row">
+                      <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+                      <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
+                    </div>
+                    <h2 class="event-title">{{ eventItem.name }}</h2>
+                  </div>
+                  <span class="event-link">{{ $t('event.viewDetails') }}</span>
+                </div>
+
+                <p class="event-meta">{{ getDisplayTime(eventItem) }}</p>
+                <p class="event-meta">
+                  {{ eventItem.organizer || $t('common.tbdOrganizer') }}
+                </p>
+                <p class="event-meta">
+                  {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
+                </p>
+                <p v-if="eventItem.recurring && eventItem.recurringText && !eventItem.startTime" class="event-meta event-recurring">
+                  {{ eventItem.recurringText }}
+                </p>
+                <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
+              </div>
+            </NuxtLink>
+          </div>
+
+          <div v-if="upcomingAndOngoingEvents.length" class="event-list regular-list">
+            <NuxtLink
+              v-for="eventItem in upcomingAndOngoingEvents"
+              :key="eventItem.id"
+              :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
+              class="event-card event-card-link"
+              :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
+              :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
+            >
+              <div class="date-badge">
+                <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
+                <span class="date-badge-day" :class="{ 'date-badge-day-small': eventItem.recurring && eventItem.recurringText }">
+                  {{ getDateBadge(eventItem).day }}
+                </span>
+              </div>
+
+              <div class="event-content">
+                <div class="event-head">
+                  <div>
+                    <div class="event-tag-row">
+                      <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+                      <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
+                    </div>
+                    <h2 class="event-title">{{ eventItem.name }}</h2>
+                  </div>
+                  <span class="event-link">{{ $t('event.viewDetails') }}</span>
+                </div>
+
+                <p class="event-meta">{{ getDisplayTime(eventItem) }}</p>
+                <p class="event-meta">
+                  {{ eventItem.organizer || $t('common.tbdOrganizer') }}
+                </p>
+                <p class="event-meta">
+                  {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
+                </p>
+                <p v-if="eventItem.recurring && eventItem.recurringText && !eventItem.startTime" class="event-meta event-recurring">
+                  {{ eventItem.recurringText }}
+                </p>
+                <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
+              </div>
+            </NuxtLink>
+          </div>
+        </template>
+
+        <template v-else-if="activeFilter === 'class'">
+          <div v-if="regularClassEvents.length" class="calendar-section-heading">
+            <h2>{{ $t('calendar.regularClasses') }}</h2>
+          </div>
+
+          <div v-if="regularClassEvents.length" class="event-list regular-list">
+            <NuxtLink
+              v-for="eventItem in regularClassEvents"
+              :key="eventItem.id"
+              :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
+              class="event-card event-card-link"
+              :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
+              :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
+            >
+              <div class="date-badge">
+                <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
+                <span class="date-badge-day date-badge-day-small">{{ getDateBadge(eventItem).day }}</span>
+              </div>
+
+              <div class="event-content">
+                <div class="event-head">
+                  <div>
+                    <div class="event-tag-row">
+                      <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+                      <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
+                    </div>
+                    <h2 class="event-title">{{ eventItem.name }}</h2>
+                  </div>
+                  <span class="event-link">{{ $t('event.viewDetails') }}</span>
+                </div>
+
+                <p class="event-meta">{{ getDisplayTime(eventItem) }}</p>
+                <p class="event-meta">
+                  {{ eventItem.organizer || $t('common.tbdOrganizer') }}
+                </p>
+                <p class="event-meta">
+                  {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
+                </p>
+                <p v-if="eventItem.recurring && eventItem.recurringText && !eventItem.startTime" class="event-meta event-recurring">
+                  {{ eventItem.recurringText }}
+                </p>
+                <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
+              </div>
+            </NuxtLink>
+          </div>
+
+          <div v-if="singleClassEvents.length" class="calendar-section-heading">
+            <h2>{{ $t('calendar.recentSingleClasses') }}</h2>
+          </div>
+
+          <div v-if="singleClassEvents.length" class="event-list regular-list">
+            <NuxtLink
+              v-for="eventItem in singleClassEvents"
+              :key="eventItem.id"
+              :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
+              class="event-card event-card-link"
+              :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
+              :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
+            >
+              <div class="date-badge">
+                <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
+                <span class="date-badge-day" :class="{ 'date-badge-day-small': eventItem.recurring && eventItem.recurringText }">
+                  {{ getDateBadge(eventItem).day }}
+                </span>
+              </div>
+
+              <div class="event-content">
+                <div class="event-head">
+                  <div>
+                    <div class="event-tag-row">
+                      <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+                      <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
+                    </div>
+                    <h2 class="event-title">{{ eventItem.name }}</h2>
+                  </div>
+                  <span class="event-link">{{ $t('event.viewDetails') }}</span>
+                </div>
+
+                <p class="event-meta">{{ getDisplayTime(eventItem) }}</p>
+                <p class="event-meta">
+                  {{ eventItem.organizer || $t('common.tbdOrganizer') }}
+                </p>
+                <p class="event-meta">
+                  {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
+                </p>
+                <p v-if="eventItem.recurring && eventItem.recurringText && !eventItem.startTime" class="event-meta event-recurring">
+                  {{ eventItem.recurringText }}
+                </p>
+                <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
+              </div>
+            </NuxtLink>
+          </div>
+        </template>
+
+        <template v-else>
+          <NuxtLink
+            v-for="eventItem in filteredEvents"
+            :key="eventItem.id"
+            :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
+            class="event-card event-card-link"
+            :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
+            :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
+          >
+            <div class="date-badge">
+              <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
+              <span class="date-badge-day" :class="{ 'date-badge-day-small': eventItem.recurring && eventItem.recurringText }">
+                {{ getDateBadge(eventItem).day }}
+              </span>
             </div>
 
-            <p class="event-meta">{{ getDisplayTime(eventItem) }}</p>
-            <p class="event-meta">
-              {{ eventItem.organizer || $t('common.tbdOrganizer') }}
-            </p>
-            <p class="event-meta">
-              {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
-            </p>
-            <p v-if="eventItem.recurring && eventItem.recurringText && !eventItem.startTime" class="event-meta event-recurring">
-              {{ eventItem.recurringText }}
-            </p>
-            <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
-          </div>
-        </NuxtLink>
+            <div class="event-content">
+              <div class="event-head">
+                <div>
+                  <div class="event-tag-row">
+                    <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
+                    <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
+                  </div>
+                  <h2 class="event-title">{{ eventItem.name }}</h2>
+                </div>
+                <span class="event-link">{{ $t('event.viewDetails') }}</span>
+              </div>
+
+              <p class="event-meta">{{ getDisplayTime(eventItem) }}</p>
+              <p class="event-meta">
+                {{ eventItem.organizer || $t('common.tbdOrganizer') }}
+              </p>
+              <p class="event-meta">
+                {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
+              </p>
+              <p v-if="eventItem.recurring && eventItem.recurringText && !eventItem.startTime" class="event-meta event-recurring">
+                {{ eventItem.recurringText }}
+              </p>
+              <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
+            </div>
+          </NuxtLink>
+        </template>
       </div>
     </section>
   </main>

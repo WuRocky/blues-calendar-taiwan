@@ -69,7 +69,9 @@
   "calendar": {
     "kicker": "All Blues Events",
     "title": "All Blues Events",
-    "description": "대만의 Blues 수업, Workshop, Social, 각종 이벤트 목록입니다."
+    "description": "대만의 Blues 수업, Workshop, Social, 각종 이벤트 목록입니다.",
+    "regularClasses": "정규 수업",
+    "recentSingleClasses": "최근 단일 수업"
   },
   "filters": {
     "all": "All",

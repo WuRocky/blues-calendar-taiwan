@@ -69,7 +69,9 @@
   "calendar": {
     "kicker": "All Blues Events",
     "title": "All Blues Events",
-    "description": "台湾の Blues クラス、Workshop、Social、各種イベント一覧。"
+    "description": "台湾の Blues クラス、Workshop、Social、各種イベント一覧。",
+    "regularClasses": "通常クラス",
+    "recentSingleClasses": "直近の単発クラス"
   },
   "filters": {
     "all": "All",

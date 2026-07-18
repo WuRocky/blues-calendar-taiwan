@@ -69,7 +69,9 @@
   "calendar": {
     "kicker": "All Blues Events",
     "title": "All Blues Events",
-    "description": "A list of Blues classes, workshops, socials, and events in Taiwan."
+    "description": "A list of Blues classes, workshops, socials, and events in Taiwan.",
+    "regularClasses": "Regular Classes",
+    "recentSingleClasses": "Recent Single Classes"
   },
   "filters": {
     "all": "All",

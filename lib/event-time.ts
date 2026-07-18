@@ -27,6 +27,17 @@ export function isRegularClass(event: Pick<BaseEventItem, 'eventType' | 'recurri
   return event.eventType === 'class' || event.recurring
 }
 
+export function isUnscheduledRegularClass(event: Pick<EventItem, 'slug' | 'status' | 'eventStatus' | 'eventType' | 'recurring' | 'startTime' | 'endTime' | 'timeStatus'>) {
+  return Boolean(event.slug)
+    && event.status.toLowerCase() === 'published'
+    && event.eventStatus === 'scheduled'
+    && event.eventType === 'class'
+    && event.recurring
+    && !event.startTime
+    && !event.endTime
+    && event.timeStatus === 'unscheduled'
+}
+
 function parseRawNotionDateTime(value: string, boundary: 'start' | 'end'): Dayjs {
   if (DATE_ONLY_PATTERN.test(value)) {
     const time = boundary === 'end' ? '23:59:59.999' : '00:00:00.000'
@@ -164,6 +175,26 @@ export function shouldDisplayCalendarEvent(event: Pick<EventItem, 'timeStatus'>)
   return shouldRetainCalendarEventByTimeStatus(event)
 }
 
+export function shouldDisplayCalendarListEvent(event: Pick<EventItem, 'slug' | 'status' | 'eventStatus' | 'eventType' | 'recurring' | 'startTime' | 'endTime' | 'timeStatus'>) {
+  if (event.timeStatus === 'unscheduled') {
+    return isUnscheduledRegularClass(event)
+  }
+
+  return shouldDisplayCalendarEvent(event)
+}
+
+export function shouldDisplayClassCalendarEvent(event: Pick<EventItem, 'slug' | 'status' | 'eventStatus' | 'eventType' | 'recurring' | 'startTime' | 'endTime' | 'timeStatus'>) {
+  if (event.eventType !== 'class') {
+    return false
+  }
+
+  if (event.timeStatus === 'upcoming' || event.timeStatus === 'ongoing') {
+    return true
+  }
+
+  return isUnscheduledRegularClass(event)
+}
+
 function compareByStartTime(a: Pick<EventItem, 'startTime'>, b: Pick<EventItem, 'startTime'>) {
   const aStart = a.startTime ?? ''
   const bStart = b.startTime ?? ''
@@ -180,8 +211,8 @@ function compareByStableIdentity(a: Pick<EventItem, 'id' | 'slug'>, b: Pick<Even
   return aIdentity.localeCompare(bIdentity)
 }
 
-function compareByOrganizer(a: Pick<BaseEventItem, 'organizer'>, b: Pick<BaseEventItem, 'organizer'>) {
-  return (a.organizer || '').localeCompare(b.organizer || '')
+function compareByWeekday(a: Pick<BaseEventItem, 'weekday'>, b: Pick<BaseEventItem, 'weekday'>) {
+  return (a.weekday || '').localeCompare(b.weekday || '')
 }
 
 function compareByWeekdayOrder(a: Pick<BaseEventItem, 'weekdayOrder'>, b: Pick<BaseEventItem, 'weekdayOrder'>) {
@@ -244,10 +275,10 @@ export function compareRegularClasses(a: BaseEventItem, b: BaseEventItem) {
     return weekdayCompare
   }
 
-  const organizerCompare = compareByOrganizer(a, b)
+  const weekdayNameCompare = compareByWeekday(a, b)
 
-  if (organizerCompare !== 0) {
-    return organizerCompare
+  if (weekdayNameCompare !== 0) {
+    return weekdayNameCompare
   }
 
   const nameCompare = compareByName(a, b)

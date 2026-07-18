@@ -69,7 +69,9 @@
   "calendar": {
     "kicker": "All Blues Events",
     "title": "活動列表",
-    "description": "台灣 Blues 常態課程、Workshop、Social 與各類活動列表。"
+    "description": "台灣 Blues 常態課程、Workshop、Social 與各類活動列表。",
+    "regularClasses": "常態課程",
+    "recentSingleClasses": "近期單次課程"
   },
   "filters": {
     "all": "All",
