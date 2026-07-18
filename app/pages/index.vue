@@ -4,6 +4,7 @@ import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { resolveTallyFormUrl } from '~~/lib/event-report'
 import { getEventDisplayStatus, getEventDisplayStatusLabel, isEventStatusMuted } from '~~/lib/event-status'
+import { buildLocaleAlternates, buildLocalizedUrl, getOgLocale, resolveSeoImage, SITE_NAME } from '~~/lib/event-seo'
 import { isRegularClass, shouldDisplayCalendarEvent, sortRegularClasses } from '~~/lib/event-time'
 import type { EventItem } from '~~/types/event'
 
@@ -12,7 +13,7 @@ dayjs.extend(timezone)
 
 const config = useRuntimeConfig()
 const localePath = useLocalePath()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const submissionFormUrl = computed(() => {
   const { url, warningReason } = resolveTallyFormUrl(config.public.eventSubmissionFormUrl)
@@ -129,8 +130,38 @@ function getStatusBadgeClass(eventItem: EventItem) {
 }
 
 useSeoMeta({
-  title: () => t('site.title'),
-  description: () => t('site.description')
+  title: () => t('site.seoTitle'),
+  description: () => t('site.description'),
+  ogTitle: () => t('site.seoTitle'),
+  ogDescription: () => t('site.description'),
+  ogUrl: () => buildLocalizedUrl(config.public.siteUrl, locale.value, '/'),
+  ogType: 'website',
+  ogSiteName: SITE_NAME,
+  ogLocale: () => getOgLocale(locale.value),
+  ogImage: () => resolveSeoImage(config.public.siteUrl, ''),
+  twitterCard: 'summary_large_image',
+  twitterTitle: () => t('site.seoTitle'),
+  twitterDescription: () => t('site.description'),
+  twitterImage: () => resolveSeoImage(config.public.siteUrl, '')
+})
+
+useHead(() => {
+  const canonical = buildLocalizedUrl(config.public.siteUrl, locale.value, '/')
+  return {
+    link: [
+      ...(canonical ? [{ rel: 'canonical', href: canonical }] : []),
+      ...buildLocaleAlternates(config.public.siteUrl, '/').map(alternate => ({
+        rel: 'alternate',
+        hreflang: alternate.hreflang,
+        href: alternate.href
+      })),
+      ...(buildLocalizedUrl(config.public.siteUrl, 'zh-TW', '/') ? [{
+        rel: 'alternate',
+        hreflang: 'x-default',
+        href: buildLocalizedUrl(config.public.siteUrl, 'zh-TW', '/')!
+      }] : [])
+    ]
+  }
 })
 </script>
 

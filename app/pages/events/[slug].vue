@@ -4,6 +4,7 @@ import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { buildGoogleCalendarUrl, canAddEventToCalendar } from '~~/lib/event-calendar'
 import { buildEventReportUrl, resolveTallyFormUrl } from '~~/lib/event-report'
+import { buildEventJsonLd, buildEventSeoDescription, buildEventSeoTitle, buildLocaleAlternates, buildLocalizedEventUrl, getOgLocale, resolveSeoImage, SITE_NAME } from '~~/lib/event-seo'
 import { buildEventShareText, buildEventShareTitle, buildEventShareUrl, buildLineShareUrl } from '~~/lib/event-sharing'
 import { getEventDisplayStatus, getEventDisplayStatusLabel, getEventRegistrationNotice, isEventRegistrationUnavailable, isEventStatusMuted } from '~~/lib/event-status'
 import type { EventItem } from '~~/types/event'
@@ -12,7 +13,7 @@ dayjs.extend(utc)
 dayjs.extend(timezone)
 
 const route = useRoute()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const config = useRuntimeConfig()
 const isWebShareSupported = ref(false)
 const shareFeedback = ref('')
@@ -243,9 +244,56 @@ onBeforeUnmount(() => {
   }
 })
 
+const seoTitle = computed(() => eventItem.value
+  ? buildEventSeoTitle(eventItem.value, locale.value)
+  : `${t('event.detailTitle')}｜${SITE_NAME}`)
+const seoDescription = computed(() => eventItem.value
+  ? buildEventSeoDescription(eventItem.value, locale.value)
+  : t('event.detailDescription'))
+const canonicalUrl = computed(() => eventItem.value
+  ? buildLocalizedEventUrl(config.public.siteUrl, locale.value, eventItem.value.slug)
+  : null)
+const seoImage = computed(() => resolveSeoImage(config.public.siteUrl, eventItem.value?.coverImageUrl || ''))
+const eventJsonLd = computed(() => eventItem.value
+  ? buildEventJsonLd(eventItem.value, config.public.siteUrl, locale.value)
+  : null)
+
 useSeoMeta({
-  title: () => eventItem.value?.name ? `${eventItem.value.name} | ${t('site.title')}` : `${t('event.detailTitle')} | ${t('site.title')}`,
-  description: () => eventItem.value?.summary || t('event.detailDescription')
+  title: () => seoTitle.value,
+  description: () => seoDescription.value,
+  ogTitle: () => seoTitle.value,
+  ogDescription: () => seoDescription.value,
+  ogUrl: () => canonicalUrl.value,
+  ogType: 'website',
+  ogSiteName: SITE_NAME,
+  ogLocale: () => getOgLocale(locale.value),
+  ogImage: () => seoImage.value,
+  ogImageAlt: () => eventItem.value?.name || SITE_NAME,
+  twitterCard: 'summary_large_image',
+  twitterTitle: () => seoTitle.value,
+  twitterDescription: () => seoDescription.value,
+  twitterImage: () => seoImage.value
+})
+
+useHead(() => {
+  const defaultUrl = eventItem.value
+    ? buildLocalizedEventUrl(config.public.siteUrl, 'zh-TW', eventItem.value.slug)
+    : null
+  return {
+    link: eventItem.value ? [
+      ...(canonicalUrl.value ? [{ rel: 'canonical', href: canonicalUrl.value }] : []),
+      ...buildLocaleAlternates(config.public.siteUrl, `/events/${eventItem.value.slug}`).map(alternate => ({
+        rel: 'alternate',
+        hreflang: alternate.hreflang,
+        href: alternate.href
+      })),
+      ...(defaultUrl ? [{ rel: 'alternate', hreflang: 'x-default', href: defaultUrl }] : [])
+    ] : [],
+    script: eventJsonLd.value ? [{
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(eventJsonLd.value).replace(/</g, '\\u003c')
+    }] : []
+  }
 })
 </script>
 

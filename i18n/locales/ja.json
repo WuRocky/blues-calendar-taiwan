@@ -3,7 +3,8 @@
     "kicker": "TAIWAN BLUES COMMUNITY BOARD",
     "title": "Blues Calendar Taiwan",
     "subtitle": "台湾の Blues レッスン、Social、Workshop、イベント告知ボード",
-    "description": "A community board for Blues dancers in Taiwan."
+    "description": "台湾各地の Blues クラス、ワークショップ、ソーシャル、イベントと定期クラスの情報をまとめています。",
+    "seoTitle": "Blues Calendar Taiwan｜台湾の Blues イベントカレンダー"
   },
   "nav": {
     "home": "ホーム",
@@ -69,7 +70,14 @@
   "calendar": {
     "kicker": "All Blues Events",
     "title": "All Blues Events",
-    "description": "台湾の Blues クラス、Workshop、Social、各種イベント一覧。"
+    "description": "台湾の Blues クラス、Workshop、Social、各種イベント一覧。",
+    "regularClasses": "通常クラス",
+    "recentSingleClasses": "直近の単発クラス",
+    "seoAll": "イベント一覧",
+    "seoClass": "Blues クラス",
+    "seoWorkshop": "Blues ワークショップ",
+    "seoSocial": "Blues ソーシャル",
+    "seoEvent": "Blues イベント"
   },
   "filters": {
     "all": "All",
