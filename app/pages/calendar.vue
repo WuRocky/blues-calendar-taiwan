@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { getEventDisplayStatus, getEventDisplayStatusLabel, isEventStatusMuted } from '~~/lib/event-status'
+import { buildLocaleAlternates, buildLocalizedUrl, getOgLocale, resolveSeoImage, SITE_NAME } from '~~/lib/event-seo'
 import { isUnscheduledRegularClass, shouldDisplayCalendarListEvent, shouldDisplayClassCalendarEvent, sortRegularClasses } from '~~/lib/event-time'
 import type { EventItem } from '~~/types/event'
 
@@ -19,7 +20,8 @@ type EventTypeFilter =
 type SpecificEventTypeFilter = Exclude<EventTypeFilter, 'all'>
 type FilterOption = { value: EventTypeFilter, label: string }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const config = useRuntimeConfig()
 const localePath = useLocalePath()
 const activeFilter = ref<EventTypeFilter>('all')
 
@@ -158,8 +160,28 @@ function getDisplayTime(eventItem: EventItem) {
 }
 
 useSeoMeta({
-  title: () => `${t('calendar.title')} | ${t('site.title')}`,
-  description: () => t('calendar.description')
+  title: () => `${t(`calendar.seo${activeFilter.value[0]!.toUpperCase()}${activeFilter.value.slice(1)}`)}｜${SITE_NAME}`,
+  description: () => t('calendar.description'),
+  ogTitle: () => `${t(`calendar.seo${activeFilter.value[0]!.toUpperCase()}${activeFilter.value.slice(1)}`)}｜${SITE_NAME}`,
+  ogDescription: () => t('calendar.description'),
+  ogUrl: () => buildLocalizedUrl(config.public.siteUrl, locale.value, '/calendar'),
+  ogType: 'website',
+  ogSiteName: SITE_NAME,
+  ogLocale: () => getOgLocale(locale.value),
+  ogImage: () => resolveSeoImage(config.public.siteUrl, ''),
+  twitterCard: 'summary_large_image'
+})
+
+useHead(() => {
+  const canonical = buildLocalizedUrl(config.public.siteUrl, locale.value, '/calendar')
+  const defaultUrl = buildLocalizedUrl(config.public.siteUrl, 'zh-TW', '/calendar')
+  return {
+    link: [
+      ...(canonical ? [{ rel: 'canonical', href: canonical }] : []),
+      ...buildLocaleAlternates(config.public.siteUrl, '/calendar').map(alternate => ({ rel: 'alternate', hreflang: alternate.hreflang, href: alternate.href })),
+      ...(defaultUrl ? [{ rel: 'alternate', hreflang: 'x-default', href: defaultUrl }] : [])
+    ]
+  }
 })
 </script>
 

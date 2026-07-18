@@ -3,7 +3,8 @@
     "kicker": "TAIWAN BLUES COMMUNITY BOARD",
     "title": "Blues Calendar Taiwan",
     "subtitle": "대만 Blues 수업, Social, Workshop, 행사 공지 보드",
-    "description": "A community board for Blues dancers in Taiwan."
+    "description": "대만의 Blues 수업, 워크숍, 소셜과 행사 정보를 모아 예정 행사와 정규 수업을 쉽게 찾을 수 있습니다.",
+    "seoTitle": "Blues Calendar Taiwan｜대만 Blues 행사 캘린더"
   },
   "nav": {
     "home": "홈",
@@ -71,7 +72,12 @@
     "title": "All Blues Events",
     "description": "대만의 Blues 수업, Workshop, Social, 각종 이벤트 목록입니다.",
     "regularClasses": "정규 수업",
-    "recentSingleClasses": "최근 단일 수업"
+    "recentSingleClasses": "최근 단일 수업",
+    "seoAll": "행사 목록",
+    "seoClass": "Blues 수업",
+    "seoWorkshop": "Blues 워크숍",
+    "seoSocial": "Blues 소셜",
+    "seoEvent": "Blues 행사"
   },
   "filters": {
     "all": "All",
