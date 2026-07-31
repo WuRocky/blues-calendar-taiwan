@@ -77,31 +77,46 @@ const submissionFormUrl = computed(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  max-width: 1160px;
+  max-width: var(--bct-page-max);
   margin: 0 auto;
-  padding: 18px 20px 0;
+  padding: 18px var(--bct-page-gutter) 0;
 }
 
 .site-brand,
 .site-nav a {
-  color: #f1e4c8;
+  color: var(--bct-cream-strong);
   text-decoration: none;
 }
 
 .site-brand {
+  flex-shrink: 0;
   font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .site-nav {
   display: flex;
   gap: 16px;
-  flex-wrap: wrap;
+  align-items: center;
+}
+
+.site-nav a {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 @media (max-width: 840px) {
   .site-header {
-    align-items: start;
-    flex-direction: column;
+    flex-wrap: wrap;
+    row-gap: 14px;
+  }
+
+  .site-nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
   }
 }
 </style>
