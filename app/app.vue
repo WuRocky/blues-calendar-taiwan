@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { resolveTallyFormUrl } from '~~/lib/event-report'
+import { getOgLocale, resolveSeoImage, SITE_NAME } from '~~/lib/event-seo'
 
 const localePath = useLocalePath()
 const { t, locale } = useI18n()
@@ -7,21 +8,24 @@ const config = useRuntimeConfig()
 const localeHead = useLocaleHead({
   lang: true,
   dir: true,
-  seo: true
+  seo: false
 })
 
 useHead(() => ({
   htmlAttrs: localeHead.value.htmlAttrs,
-  title: t('site.title'),
-  meta: [
-    ...localeHead.value.meta,
-    {
-      name: 'description',
-      content: t('site.description')
-    }
-  ],
+  titleTemplate: title => title || t('site.seoTitle'),
   link: localeHead.value.link
 }))
+
+useSeoMeta({
+  title: () => t('site.seoTitle'),
+  description: () => t('site.description'),
+  ogSiteName: SITE_NAME,
+  ogLocale: () => getOgLocale(locale.value),
+  ogType: 'website',
+  ogImage: () => resolveSeoImage(config.public.siteUrl, ''),
+  twitterCard: 'summary_large_image'
+})
 
 const submissionFormUrl = computed(() => {
   const { url, warningReason } = resolveTallyFormUrl(config.public.eventSubmissionFormUrl)

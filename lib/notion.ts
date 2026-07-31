@@ -426,6 +426,21 @@ export async function getPublishedEvents() {
   return sortEventsByDisplayPriority(events)
 }
 
+export async function getSitemapEvents() {
+  const config = useRuntimeConfig()
+
+  if (!config.notionEventsDatabaseId) {
+    return []
+  }
+
+  const publishedSource = await getCachedPublishedEventSource(config.notionEventsDatabaseId)
+
+  return publishedSource.flatMap(({ event: mappedEvent, timeIssues }) => {
+    const event = createEventItemWithTimeStatus(mappedEvent, timeIssues)
+    return event.timeStatus === 'invalid' ? [] : [event]
+  })
+}
+
 export async function getEventBySlug(slug: string) {
   const config = useRuntimeConfig()
 

@@ -1,80 +1,128 @@
 <script setup lang="ts">
-import { resolveTallyFormUrl } from '~~/lib/event-report'
-import { isRegularClass, shouldDisplayCalendarEvent, sortRegularClasses } from '~~/lib/event-time'
-import type { EventItem } from '~~/types/event'
+import { resolveTallyFormUrl } from "~~/lib/event-report";
+import {
+  isRegularClass,
+  shouldDisplayCalendarEvent,
+  sortRegularClasses,
+} from "~~/lib/event-time";
+import type { EventItem } from "~~/types/event";
 
-const config = useRuntimeConfig()
-const localePath = useLocalePath()
-const { t } = useI18n()
+const config = useRuntimeConfig();
+const localePath = useLocalePath();
+const { t, locale } = useI18n();
 
 const submissionFormUrl = computed(() => {
-  const { url, warningReason } = resolveTallyFormUrl(config.public.eventSubmissionFormUrl)
+  const { url, warningReason } = resolveTallyFormUrl(
+    config.public.eventSubmissionFormUrl
+  );
 
   if (import.meta.dev && warningReason) {
-    console.warn(`[forms] Submission form disabled on home page: ${warningReason}`)
+    console.warn(
+      `[forms] Submission form disabled on home page: ${warningReason}`
+    );
   }
 
-  return url
-})
+  return url;
+});
 
-const { data: events, error } = await useFetch<EventItem[]>('/api/events', {
-  default: () => []
-})
+const { data: events, error } = await useFetch<EventItem[]>("/api/events", {
+  default: () => [],
+});
 
 function mapPrimaryType(eventType: string) {
-  const normalized = eventType.toLowerCase()
+  const normalized = eventType.toLowerCase();
 
-  if (normalized === 'class') {
-    return 'class'
+  if (normalized === "class") {
+    return "class";
   }
 
-  if (normalized === 'workshop') {
-    return 'workshop'
+  if (normalized === "workshop") {
+    return "workshop";
   }
 
-  if (normalized === 'social' || normalized === 'open-floor') {
-    return 'social'
+  if (normalized === "social" || normalized === "open-floor") {
+    return "social";
   }
 
-  return 'event'
+  return "event";
 }
 
 const quickExploreItems = computed(() => {
-  const calendarPath = localePath('calendar')
+  const calendarPath = localePath("calendar");
 
   return [
-    { key: 'this-week', label: t('home.thisWeek'), to: calendarPath },
-    { key: 'class', label: t('filters.class'), to: calendarPath },
-    { key: 'workshop', label: t('filters.workshop'), to: calendarPath },
-    { key: 'social', label: t('filters.social'), to: calendarPath },
-    { key: 'event', label: t('filters.event'), to: calendarPath }
-  ]
-})
+    { key: "this-week", label: t("home.thisWeek"), to: calendarPath },
+    { key: "class", label: t("filters.class"), to: calendarPath },
+    { key: "workshop", label: t("filters.workshop"), to: calendarPath },
+    { key: "social", label: t("filters.social"), to: calendarPath },
+    { key: "event", label: t("filters.event"), to: calendarPath },
+  ];
+});
 
 const regularWeeklyClasses = computed(() => {
   return sortRegularClasses(
     (events.value || []).filter((eventItem) => isRegularClass(eventItem))
-  ).slice(0, 6)
-})
+  ).slice(0, 6);
+});
 
 const upcomingEvents = computed(() => {
   return [...(events.value || [])]
     .filter((eventItem) => shouldDisplayCalendarEvent(eventItem))
-    .filter((eventItem) => ['workshop', 'social', 'event'].includes(mapPrimaryType(eventItem.eventType)))
-})
+    .filter((eventItem) =>
+      ["workshop", "social", "event"].includes(
+        mapPrimaryType(eventItem.eventType)
+      )
+    );
+});
 
-const recentEvents = computed(() => upcomingEvents.value.slice(0, 4))
+const recentEvents = computed(() => upcomingEvents.value.slice(0, 4));
 
 const highlightEvents = computed(() => {
   return upcomingEvents.value
-    .filter((eventItem) => ['workshop', 'event'].includes(mapPrimaryType(eventItem.eventType)))
-    .slice(0, 3)
-})
+    .filter((eventItem) =>
+      ["workshop", "event"].includes(mapPrimaryType(eventItem.eventType))
+    )
+    .slice(0, 3);
+});
 
 useSeoMeta({
-  title: () => t('site.title'),
-  description: () => t('site.description')
-})
+  title: () => t("site.seoTitle"),
+  description: () => t("site.description"),
+  ogTitle: () => t("site.seoTitle"),
+  ogDescription: () => t("site.description"),
+  ogUrl: () => buildLocalizedUrl(config.public.siteUrl, locale.value, "/"),
+  ogType: "website",
+  ogSiteName: SITE_NAME,
+  ogLocale: () => getOgLocale(locale.value),
+  ogImage: () => resolveSeoImage(config.public.siteUrl, ""),
+  twitterCard: "summary_large_image",
+  twitterTitle: () => t("site.seoTitle"),
+  twitterDescription: () => t("site.description"),
+  twitterImage: () => resolveSeoImage(config.public.siteUrl, ""),
+});
+
+useHead(() => {
+  const canonical = buildLocalizedUrl(config.public.siteUrl, locale.value, "/");
+  return {
+    link: [
+      ...(canonical ? [{ rel: "canonical", href: canonical }] : []),
+      ...buildLocaleAlternates(config.public.siteUrl, "/").map((alternate) => ({
+        rel: "alternate",
+        hreflang: alternate.hreflang,
+        href: alternate.href,
+      })),
+      ...(buildLocalizedUrl(config.public.siteUrl, "zh-TW", "/")
+        ? [
+            {
+              rel: "alternate",
+              hreflang: "x-default",
+              href: buildLocalizedUrl(config.public.siteUrl, "zh-TW", "/")!,
+            },
+          ]
+        : []),
+    ],
+  };
+});
 </script>
 
 <template>
@@ -92,8 +140,10 @@ useSeoMeta({
         :link-to="localePath('calendar')"
       />
 
-      <p v-if="error" class="state-copy">{{ $t('common.loadError') }}</p>
-      <p v-else-if="recentEvents.length === 0" class="state-copy">{{ $t('common.noEvents') }}</p>
+      <p v-if="error" class="state-copy">{{ $t("common.loadError") }}</p>
+      <p v-else-if="recentEvents.length === 0" class="state-copy">
+        {{ $t("common.noEvents") }}
+      </p>
 
       <div v-else class="recent-grid">
         <HomeEventCard
@@ -113,8 +163,10 @@ useSeoMeta({
         :link-to="localePath('calendar')"
       />
 
-      <p v-if="error" class="state-copy">{{ $t('common.loadError') }}</p>
-      <p v-else-if="regularWeeklyClasses.length === 0" class="state-copy">{{ $t('common.noClasses') }}</p>
+      <p v-if="error" class="state-copy">{{ $t("common.loadError") }}</p>
+      <p v-else-if="regularWeeklyClasses.length === 0" class="state-copy">
+        {{ $t("common.noClasses") }}
+      </p>
 
       <div v-else class="regular-grid">
         <HomeRegularClassCard
@@ -143,9 +195,9 @@ useSeoMeta({
 
     <section v-if="submissionFormUrl" class="submit-panel">
       <div class="submit-copy">
-        <p class="submit-kicker">{{ $t('nav.submit') }}</p>
-        <h2 class="submit-title">{{ $t('home.submitTitle') }}</h2>
-        <p class="submit-description">{{ $t('home.submitDescription') }}</p>
+        <p class="submit-kicker">{{ $t("nav.submit") }}</p>
+        <h2 class="submit-title">{{ $t("home.submitTitle") }}</h2>
+        <p class="submit-description">{{ $t("home.submitDescription") }}</p>
       </div>
 
       <a
@@ -154,7 +206,7 @@ useSeoMeta({
         target="_blank"
         rel="noopener noreferrer"
       >
-        {{ $t('home.submitAction') }}
+        {{ $t("home.submitAction") }}
       </a>
     </section>
   </main>
@@ -211,8 +263,11 @@ useSeoMeta({
   padding: clamp(24px, 4vw, 36px);
   border: 1px solid var(--bct-panel-border);
   border-radius: calc(var(--bct-radius-lg) + 2px);
-  background:
-    linear-gradient(135deg, rgba(14, 28, 47, 0.95), rgba(7, 15, 28, 0.98)),
+  background: linear-gradient(
+      135deg,
+      rgba(14, 28, 47, 0.95),
+      rgba(7, 15, 28, 0.98)
+    ),
     var(--bct-panel);
   box-shadow: var(--bct-shadow);
 }

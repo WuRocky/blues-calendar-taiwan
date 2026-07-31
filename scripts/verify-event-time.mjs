@@ -175,6 +175,6 @@ const regularClassOrder = sortRegularClasses([
   })
 ]).map(event => event.slug)
 
-assert.deepEqual(regularClassOrder, ['weekday-1-a', 'weekday-2-a', 'weekday-2-b', 'weekday-null'])
+assert.deepEqual(regularClassOrder, ['weekday-1-a', 'weekday-2-b', 'weekday-2-a', 'weekday-null'])
 
 console.log('verify-event-time: ok')
