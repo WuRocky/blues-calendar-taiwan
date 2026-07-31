@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { resolveTallyFormUrl } from "~~/lib/event-report";
 import {
+  buildLocaleAlternates,
+  buildLocalizedUrl,
+  getOgLocale,
+  resolveSeoImage,
+  SITE_NAME,
+} from "~~/lib/event-seo";
+import {
   isRegularClass,
   shouldDisplayCalendarEvent,
   sortRegularClasses,
@@ -11,7 +18,7 @@ const config = useRuntimeConfig();
 const localePath = useLocalePath();
 const { t, locale } = useI18n();
 
-const submissionFormUrl = computed(() => {
+const submissionFormUrl = computed<string | null>(() => {
   const { url, warningReason } = resolveTallyFormUrl(
     config.public.eventSubmissionFormUrl
   );
@@ -22,7 +29,7 @@ const submissionFormUrl = computed(() => {
     );
   }
 
-  return url;
+  return url ?? null;
 });
 
 const { data: events, error } = await useFetch<EventItem[]>("/api/events", {
@@ -47,7 +54,7 @@ function mapPrimaryType(eventType: string) {
   return "event";
 }
 
-const quickExploreItems = computed(() => {
+const quickExploreItems = computed<Array<{ key: string, label: string, to: string }>>(() => {
   const calendarPath = localePath("calendar");
 
   return [
@@ -56,7 +63,7 @@ const quickExploreItems = computed(() => {
     { key: "workshop", label: t("filters.workshop"), to: calendarPath },
     { key: "social", label: t("filters.social"), to: calendarPath },
     { key: "event", label: t("filters.event"), to: calendarPath },
-  ];
+  ] satisfies Array<{ key: string, label: string, to: string }>;
 });
 
 const regularWeeklyClasses = computed(() => {
@@ -106,7 +113,7 @@ useHead(() => {
   return {
     link: [
       ...(canonical ? [{ rel: "canonical", href: canonical }] : []),
-      ...buildLocaleAlternates(config.public.siteUrl, "/").map((alternate) => ({
+      ...buildLocaleAlternates(config.public.siteUrl, "/").map((alternate: { hreflang: string; href: string }) => ({
         rel: "alternate",
         hreflang: alternate.hreflang,
         href: alternate.href,
@@ -127,9 +134,9 @@ useHead(() => {
 
 <template>
   <main class="home-page">
-    <HomeHero :submission-form-url="submissionFormUrl" />
+    <HomeHero :submission-form-url="submissionFormUrl ?? null" />
 
-    <HomeQuickExplore :items="quickExploreItems" />
+    <HomeQuickExplore :items="quickExploreItems ?? []" />
 
     <section class="home-section">
       <HomeSectionHeader

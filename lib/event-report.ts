@@ -9,8 +9,8 @@ export interface TallyFormUrlResolution {
   warningReason: string | null
 }
 
-export function resolveTallyFormUrl(formUrl: string) {
-  const trimmed = formUrl.trim()
+export function resolveTallyFormUrl(formUrl: string | null | undefined) {
+  const trimmed = (formUrl ?? '').trim()
 
   if (!trimmed) {
     return {
