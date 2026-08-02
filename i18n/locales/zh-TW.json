@@ -13,11 +13,12 @@
   },
   "home": {
     "viewAllEvents": "查看完整活動列表",
-    "weeklyCalendar": { "title": "本週活動", "moreEvents": "還有 {count} 個活動", "viewAll": "查看完整活動列表", "today": "今天", "loadError": "目前無法載入本週活動", "retry": "重新整理", "previousWeek": "上一週", "nextWeek": "下一週", "returnToCurrentWeek": "回到本週", "currentWeek": "本週", "weekNavigation": "週次導覽" },
+    "weeklyCalendar": { "title": "本週活動", "moreEvents": "還有 {count} 個活動", "viewAll": "查看完整活動列表", "today": "今天", "loadError": "目前無法載入本週活動", "retry": "重新整理", "previousWeek": "上一週", "nextWeek": "下一週", "returnToCurrentWeek": "回到本週", "currentWeek": "本週", "currentWeekRange": "{range}（本週）", "weekNavigation": "週次導覽" },
     "quickExplore": { "title": "你想找什麼活動？", "socialDescription": "一起跳舞與交流的社群活動", "classDescription": "常態課與單次課程", "workshopDescription": "主題課程與密集工作坊", "eventDescription": "週末活動與大型聚會" },
     "highlights": { "title": "精選活動" },
-    "heroTitle": "台灣 Blues 活動行事曆",
-    "heroDescription": "找到近期的 Blues 課程、Workshop、Social 與活動",
+    "heroTitle": "這週，去哪裡跳 Blues？",
+    "heroDescription": "從常態課、Social 到 Workshop，\n找到下一次一起跳舞與相遇的地方。",
+    "heroImageAlt": "黃昏時的台北 101 與台北城市天際線",
     "thisWeek": "本週",
     "recentKicker": "This Week / Soon",
     "recentTitle": "近期活動",
@@ -39,7 +40,7 @@
     "viewEvents": "查看活動"
   },
   "eventStatus": { "cancelled": "已取消", "postponed": "延期", "ongoing": "進行中", "ended": "已結束" },
-  "footer": { "siteDescription": "台灣 Blues 課程、Workshop、Social 與活動資訊平台。", "createdBy": "由 Rocky 製作與維護", "creatorRoles": "Front-end Developer · Blues Dancer · Teacher", "creatorMessage": "為台灣 Blues 社群打造，讓每一堂課、每一場 Social 與每一次相遇更容易被找到。", "community": "參與社群", "submitEvent": "投稿活動", "reportEvent": "回報活動資訊", "instagramAria": "在新分頁開啟 Rocky 的 Instagram", "email": "聯絡 Rocky", "copyright": "© {year} Blues Calendar Taiwan" },
+  "footer": { "siteDescription": "台灣 Blues 課程、Workshop、Social 與活動資訊平台。", "createdBy": "由 Rocky 製作與維護", "creatorRoles": "Front-end Developer · Blues Dancer · Teacher", "creatorMessage": "為台灣 Blues 社群打造，讓每一堂課、每一場 Social 與每一次相遇更容易被找到。", "community": "參與社群", "submitEvent": "投稿活動", "reportEvent": "回報活動資訊", "instagramAria": "在新分頁開啟 Rocky 的 Instagram", "email": "聯絡 Rocky", "copyright": "© {year} Blues Calendar Taiwan", "heroPhotoPrefix": "首頁照片：" },
   "category": {
     "class": "常態課程",
     "classLabel": "Regular Classes",

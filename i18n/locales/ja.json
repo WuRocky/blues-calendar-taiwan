@@ -13,11 +13,12 @@
   },
   "home": {
     "viewAllEvents": "すべてのイベントを見る",
-    "weeklyCalendar": { "title": "今週のイベント", "moreEvents": "ほか {count} 件", "viewAll": "すべてのイベントを見る", "today": "今日", "loadError": "今週のイベントを読み込めません", "retry": "再読み込み", "previousWeek": "前の週", "nextWeek": "次の週", "returnToCurrentWeek": "今週に戻る", "currentWeek": "今週", "weekNavigation": "週のナビゲーション" },
+    "weeklyCalendar": { "title": "今週のイベント", "moreEvents": "ほか {count} 件", "viewAll": "すべてのイベントを見る", "today": "今日", "loadError": "今週のイベントを読み込めません", "retry": "再読み込み", "previousWeek": "前の週", "nextWeek": "次の週", "returnToCurrentWeek": "今週に戻る", "currentWeek": "今週", "currentWeekRange": "{range}（今週）", "weekNavigation": "週のナビゲーション" },
     "quickExplore": { "title": "どんなイベントをお探しですか？", "socialDescription": "踊りと交流を楽しむコミュニティイベント", "classDescription": "定期クラスと単発レッスン", "workshopDescription": "テーマ別クラスと集中ワークショップ", "eventDescription": "週末イベントと大型交流会" },
     "highlights": { "title": "注目イベント" },
-    "heroTitle": "台湾 Blues イベントカレンダー",
-    "heroDescription": "近日開催の Blues クラス、Workshop、Social、イベントをすぐに見つけましょう。",
+    "heroTitle": "今週、どこで Blues を踊る？",
+    "heroDescription": "レギュラークラスや Social、Workshop から、\n次に踊り、出会える場所を見つけよう。",
+    "heroImageAlt": "夕暮れの台北101と台北の街並み",
     "thisWeek": "今週",
     "recentKicker": "This Week / Soon",
     "recentTitle": "近日のイベント",
@@ -39,7 +40,7 @@
     "viewEvents": "イベントを見る"
   },
   "eventStatus": { "cancelled": "中止", "postponed": "延期", "ongoing": "開催中", "ended": "終了" },
-  "footer": { "siteDescription": "台湾の Blues クラス、Workshop、Social、イベント情報プラットフォーム。", "createdBy": "Rocky が制作・運営", "creatorRoles": "Front-end Developer · Blues Dancer · Teacher", "creatorMessage": "台湾の Blues コミュニティのために、クラスや Social、出会いをもっと見つけやすく。", "community": "コミュニティに参加", "submitEvent": "イベントを投稿", "reportEvent": "イベント情報を報告", "instagramAria": "Rocky の Instagram を新しいタブで開く", "email": "Rocky に連絡", "copyright": "© {year} Blues Calendar Taiwan" },
+  "footer": { "siteDescription": "台湾の Blues クラス、Workshop、Social、イベント情報プラットフォーム。", "createdBy": "Rocky が制作・運営", "creatorRoles": "Front-end Developer · Blues Dancer · Teacher", "creatorMessage": "台湾の Blues コミュニティのために、クラスや Social、出会いをもっと見つけやすく。", "community": "コミュニティに参加", "submitEvent": "イベントを投稿", "reportEvent": "イベント情報を報告", "instagramAria": "Rocky の Instagram を新しいタブで開く", "email": "Rocky に連絡", "copyright": "© {year} Blues Calendar Taiwan", "heroPhotoPrefix": "ヒーロー写真：" },
   "category": {
     "class": "通常クラス",
     "classLabel": "Regular Classes",

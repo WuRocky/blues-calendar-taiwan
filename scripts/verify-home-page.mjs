@@ -12,6 +12,9 @@ const helper = fs.readFileSync(new URL('../lib/home-events.ts', import.meta.url)
 const week = fs.readFileSync(new URL('../app/components/WeeklyEventCalendar.vue', import.meta.url), 'utf8')
 const notion = fs.readFileSync(new URL('../lib/notion.ts', import.meta.url), 'utf8')
 const weeklyApi = fs.readFileSync(new URL('../server/api/weekly-calendar-events.get.ts', import.meta.url), 'utf8')
+const localeFiles = ['zh-TW', 'en', 'ja', 'ko'].map(locale =>
+  JSON.parse(fs.readFileSync(new URL(`../i18n/locales/${locale}.json`, import.meta.url), 'utf8'))
+)
 const projectRoot = new URL('../', import.meta.url).pathname
 const jiti = jitiFactory(import.meta.url, { alias: { '~~': projectRoot } })
 const { buildHomeWeek, selectDatedHomeCalendarEvents, selectWeeklyCalendarEvents } = jiti('../lib/home-events.ts')
@@ -116,13 +119,21 @@ assert.match(week, /const weekOffset = ref\(0\)/)
 assert.match(week, /const previousWeek = \(\) => \{ weekOffset\.value -= 1 \}/)
 assert.match(week, /const nextWeek = \(\) => \{ weekOffset\.value \+= 1 \}/)
 assert.match(week, /const returnToCurrentWeek = \(\) => \{ weekOffset\.value = 0 \}/)
-assert.match(week, /:disabled="weekOffset === 0"/)
-assert.doesNotMatch(week, /v-if="weekOffset !== 0"/)
+assert.match(week, /const rangeLabel = computed\(\(\) => weekOffset\.value === 0/)
+assert.match(week, /currentWeekRange/)
+assert.match(week, /v-if="weekOffset !== 0"/)
+assert.doesNotMatch(week, /:disabled="weekOffset === 0"/)
 assert.doesNotMatch(week, /home\.weeklyCalendar\.(?:emptyWeek|emptyDay)/)
 assert.match(week, /class="week-actions"[\s\S]*<NuxtLink :to="localePath\('calendar'\)"/)
 assert.match(week, /\.week-navigation\{min-height:96px\}/)
 assert.match(week, /\.desktop-calendar\{min-height:290px\}/)
 assert.match(week, /\.mobile-events\{min-height:230px/)
+assert.deepEqual(localeFiles.map(messages => messages.home.weeklyCalendar.currentWeekRange), [
+  '{range}（本週）',
+  '{range} (This week)',
+  '{range}（今週）',
+  '{range} (이번 주)'
+])
 assert.match(week, /weekOffset\.value === 0[\s\S]+getDefaultHomeDayKey\(value\)[\s\S]+value\[0\]\?\.key/)
 assert.match(week, /const days = displayedWeekDays/)
 assert.doesNotMatch(week, /useFetch|\$fetch/)
