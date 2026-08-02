@@ -1,610 +1,356 @@
 <script setup lang="ts">
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
-import timezone from 'dayjs/plugin/timezone'
-import { resolveTallyFormUrl } from '~~/lib/event-report'
-import { getEventDisplayStatus, getEventDisplayStatusLabel, isEventStatusMuted } from '~~/lib/event-status'
-import { buildLocaleAlternates, buildLocalizedUrl, getOgLocale, resolveSeoImage, SITE_NAME } from '~~/lib/event-seo'
-import { isRegularClass, shouldDisplayCalendarEvent, sortRegularClasses } from '~~/lib/event-time'
-import type { EventItem } from '~~/types/event'
+import { resolveTallyFormUrl } from "~~/lib/event-report";
+import {
+  buildLocaleAlternates,
+  buildLocalizedUrl,
+  getOgLocale,
+  resolveSeoImage,
+  SITE_NAME,
+} from "~~/lib/event-seo";
+import {
+  isRegularClass,
+  shouldDisplayCalendarEvent,
+  sortRegularClasses,
+} from "~~/lib/event-time";
+import type { EventItem } from "~~/types/event";
 
-dayjs.extend(utc)
-dayjs.extend(timezone)
+const config = useRuntimeConfig();
+const localePath = useLocalePath();
+const { t, locale } = useI18n();
 
-const config = useRuntimeConfig()
-const localePath = useLocalePath()
-const { t, locale } = useI18n()
-
-const submissionFormUrl = computed(() => {
-  const { url, warningReason } = resolveTallyFormUrl(config.public.eventSubmissionFormUrl)
+const submissionFormUrl = computed<string | null>(() => {
+  const { url, warningReason } = resolveTallyFormUrl(
+    config.public.eventSubmissionFormUrl
+  );
 
   if (import.meta.dev && warningReason) {
-    console.warn(`[forms] Submission form disabled on home page: ${warningReason}`)
+    console.warn(
+      `[forms] Submission form disabled on home page: ${warningReason}`
+    );
   }
 
-  return url
-})
+  return url ?? null;
+});
 
-const { data: events, error } = await useFetch<EventItem[]>('/api/events', {
-  default: () => []
-})
+const { data: events, error } = await useFetch<EventItem[]>("/api/events", {
+  default: () => [],
+});
+
+function mapPrimaryType(eventType: string) {
+  const normalized = eventType.toLowerCase();
+
+  if (normalized === "class") {
+    return "class";
+  }
+
+  if (normalized === "workshop") {
+    return "workshop";
+  }
+
+  if (normalized === "social" || normalized === "open-floor") {
+    return "social";
+  }
+
+  return "event";
+}
+
+const quickExploreItems = computed<Array<{ key: string, label: string, to: string }>>(() => {
+  const calendarPath = localePath("calendar");
+
+  return [
+    { key: "this-week", label: t("home.thisWeek"), to: calendarPath },
+    { key: "class", label: t("filters.class"), to: calendarPath },
+    { key: "workshop", label: t("filters.workshop"), to: calendarPath },
+    { key: "social", label: t("filters.social"), to: calendarPath },
+    { key: "event", label: t("filters.event"), to: calendarPath },
+  ] satisfies Array<{ key: string, label: string, to: string }>;
+});
 
 const regularWeeklyClasses = computed(() => {
   return sortRegularClasses(
     (events.value || []).filter((eventItem) => isRegularClass(eventItem))
-  )
-})
+  ).slice(0, 6);
+});
 
 const upcomingEvents = computed(() => {
   return [...(events.value || [])]
     .filter((eventItem) => shouldDisplayCalendarEvent(eventItem))
-    .filter((eventItem) => ['workshop', 'social', 'event'].includes(mapPrimaryType(eventItem.eventType)))
-})
+    .filter((eventItem) =>
+      ["workshop", "social", "event"].includes(
+        mapPrimaryType(eventItem.eventType)
+      )
+    );
+});
 
-function mapPrimaryType(eventType: string) {
-  const normalized = eventType.toLowerCase()
+const recentEvents = computed(() => upcomingEvents.value.slice(0, 4));
 
-  if (normalized === 'class') {
-    return 'class'
-  }
-
-  if (normalized === 'workshop') {
-    return 'workshop'
-  }
-
-  if (normalized === 'social' || normalized === 'open-floor') {
-    return 'social'
-  }
-
-  return 'event'
-}
-
-function formatDate(date: string | null) {
-  if (!date) {
-    return ''
-  }
-
-  return dayjs.utc(date).tz('Asia/Taipei').format('YYYY/MM/DD HH:mm')
-}
-
-function formatPosterDate(date: string | null) {
-  if (!date) {
-    return { month: 'TBD', day: '--' }
-  }
-
-  const localDate = dayjs.utc(date).tz('Asia/Taipei')
-  return {
-    month: localDate.format('MMM').toUpperCase(),
-    day: localDate.format('DD')
-  }
-}
-
-function getDateBadge(eventItem: EventItem) {
-  if (eventItem.recurring && eventItem.recurringText) {
-    return {
-      month: t('event.fixedBadge'),
-      day: t('event.classBadge')
-    }
-  }
-
-  if (eventItem.startTime) {
-    return formatPosterDate(eventItem.startTime)
-  }
-
-  return {
-    month: 'TBD',
-    day: '--'
-  }
-}
-
-function getDisplayTime(eventItem: EventItem) {
-  if (eventItem.startTime) {
-    return formatDate(eventItem.startTime)
-  }
-
-  if (eventItem.recurring && eventItem.recurringText) {
-    return eventItem.recurringText
-  }
-
-  return t('common.timeToBeAnnounced')
-}
-
-function getEventTypeLabel(eventType: string) {
-  return t(`filters.${mapPrimaryType(eventType)}`)
-}
-
-function getStatusLabel(eventItem: EventItem) {
-  return getEventDisplayStatusLabel(getEventDisplayStatus(eventItem))
-}
-
-function getStatusBadgeClass(eventItem: EventItem) {
-  if (eventItem.eventStatus === 'cancelled') {
-    return 'event-status-badge-cancelled'
-  }
-
-  if (eventItem.eventStatus === 'postponed') {
-    return 'event-status-badge-postponed'
-  }
-
-  return 'event-live-badge'
-}
+const highlightEvents = computed(() => {
+  return upcomingEvents.value
+    .filter((eventItem) =>
+      ["workshop", "event"].includes(mapPrimaryType(eventItem.eventType))
+    )
+    .slice(0, 3);
+});
 
 useSeoMeta({
-  title: () => t('site.seoTitle'),
-  description: () => t('site.description'),
-  ogTitle: () => t('site.seoTitle'),
-  ogDescription: () => t('site.description'),
-  ogUrl: () => buildLocalizedUrl(config.public.siteUrl, locale.value, '/'),
-  ogType: 'website',
+  title: () => t("site.seoTitle"),
+  description: () => t("site.description"),
+  ogTitle: () => t("site.seoTitle"),
+  ogDescription: () => t("site.description"),
+  ogUrl: () => buildLocalizedUrl(config.public.siteUrl, locale.value, "/"),
+  ogType: "website",
   ogSiteName: SITE_NAME,
   ogLocale: () => getOgLocale(locale.value),
-  ogImage: () => resolveSeoImage(config.public.siteUrl, ''),
-  twitterCard: 'summary_large_image',
-  twitterTitle: () => t('site.seoTitle'),
-  twitterDescription: () => t('site.description'),
-  twitterImage: () => resolveSeoImage(config.public.siteUrl, '')
-})
+  ogImage: () => resolveSeoImage(config.public.siteUrl, ""),
+  twitterCard: "summary_large_image",
+  twitterTitle: () => t("site.seoTitle"),
+  twitterDescription: () => t("site.description"),
+  twitterImage: () => resolveSeoImage(config.public.siteUrl, ""),
+});
 
 useHead(() => {
-  const canonical = buildLocalizedUrl(config.public.siteUrl, locale.value, '/')
+  const canonical = buildLocalizedUrl(config.public.siteUrl, locale.value, "/");
   return {
     link: [
-      ...(canonical ? [{ rel: 'canonical', href: canonical }] : []),
-      ...buildLocaleAlternates(config.public.siteUrl, '/').map(alternate => ({
-        rel: 'alternate',
+      ...(canonical ? [{ rel: "canonical", href: canonical }] : []),
+      ...buildLocaleAlternates(config.public.siteUrl, "/").map((alternate: { hreflang: string; href: string }) => ({
+        rel: "alternate",
         hreflang: alternate.hreflang,
-        href: alternate.href
+        href: alternate.href,
       })),
-      ...(buildLocalizedUrl(config.public.siteUrl, 'zh-TW', '/') ? [{
-        rel: 'alternate',
-        hreflang: 'x-default',
-        href: buildLocalizedUrl(config.public.siteUrl, 'zh-TW', '/')!
-      }] : [])
-    ]
-  }
-})
+      ...(buildLocalizedUrl(config.public.siteUrl, "zh-TW", "/")
+        ? [
+            {
+              rel: "alternate",
+              hreflang: "x-default",
+              href: buildLocalizedUrl(config.public.siteUrl, "zh-TW", "/")!,
+            },
+          ]
+        : []),
+    ],
+  };
+});
 </script>
 
 <template>
-  <main class="poster-page">
-    <section class="hero-panel">
-      <p class="hero-kicker">{{ $t('site.kicker') }}</p>
-      <h1 class="hero-title">{{ $t('site.title') }}</h1>
-      <p class="hero-subtitle">{{ $t('site.subtitle') }}</p>
-      <p class="hero-subtitle hero-subtitle-en">{{ $t('site.description') }}</p>
+  <main class="home-page">
+    <HomeHero :submission-form-url="submissionFormUrl ?? null" />
 
-      <div class="hero-actions">
-        <NuxtLink class="poster-button poster-button-primary" :to="localePath('calendar')">
-          {{ $t('home.viewEvents') }}
-        </NuxtLink>
-        <a
-          v-if="submissionFormUrl"
-          class="poster-button"
-          :href="submissionFormUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-          :aria-label="$t('nav.submit')"
-        >
-          {{ $t('nav.submit') }}
-        </a>
+    <HomeQuickExplore :items="quickExploreItems ?? []" />
+
+    <section class="home-section">
+      <HomeSectionHeader
+        :kicker="$t('home.recentKicker')"
+        :title="$t('home.recentTitle')"
+        :description="$t('home.recentDescription')"
+        :link-label="$t('home.viewAll')"
+        :link-to="localePath('calendar')"
+      />
+
+      <p v-if="error" class="state-copy">{{ $t("common.loadError") }}</p>
+      <p v-else-if="recentEvents.length === 0" class="state-copy">
+        {{ $t("common.noEvents") }}
+      </p>
+
+      <div v-else class="recent-grid">
+        <HomeEventCard
+          v-for="eventItem in recentEvents"
+          :key="eventItem.id"
+          :event-item="eventItem"
+        />
       </div>
     </section>
 
-    <section class="section-block">
-      <div class="section-heading section-heading-inline">
-        <div>
-          <p class="section-kicker">{{ $t('home.regularTitle') }}</p>
-          <h2>{{ $t('home.regularSubtitle') }}</h2>
-        </div>
-      </div>
+    <section class="home-section">
+      <HomeSectionHeader
+        :kicker="$t('home.regularKicker')"
+        :title="$t('home.regularClassesTitle')"
+        :description="$t('home.regularDescription')"
+        :link-label="$t('home.viewAll')"
+        :link-to="localePath('calendar')"
+      />
 
-      <p v-if="error" class="state-copy">{{ $t('common.loadError') }}</p>
-      <p v-else-if="regularWeeklyClasses.length === 0" class="state-copy">{{ $t('common.noClasses') }}</p>
+      <p v-if="error" class="state-copy">{{ $t("common.loadError") }}</p>
+      <p v-else-if="regularWeeklyClasses.length === 0" class="state-copy">
+        {{ $t("common.noClasses") }}
+      </p>
 
-      <div v-else class="event-grid">
-        <NuxtLink
+      <div v-else class="regular-grid">
+        <HomeRegularClassCard
           v-for="eventItem in regularWeeklyClasses"
           :key="eventItem.id"
-          :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
-          class="event-card event-card-regular event-card-link"
-          :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
-          :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
-        >
-          <div class="date-badge date-badge-recurring">
-            <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
-            <span class="date-badge-day date-badge-day-small">{{ getDateBadge(eventItem).day }}</span>
-          </div>
-
-          <div class="event-card-body">
-            <div class="event-tag-row">
-              <p class="event-tag">{{ $t('filters.class') }}</p>
-              <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
-            </div>
-            <h3 class="event-title">{{ eventItem.name }}</h3>
-            <p class="event-meta">{{ eventItem.organizer || $t('common.tbdOrganizer') }}</p>
-            <p class="event-meta">
-              {{ $t('event.level') }} · {{ eventItem.level || $t('common.noLevel') }}
-            </p>
-            <p class="event-meta">
-              {{ eventItem.city || $t('common.tbdCity') }}
-            </p>
-            <p v-if="eventItem.weekday" class="event-meta event-weekday">{{ eventItem.weekday }}</p>
-            <p class="event-meta event-recurring">{{ getDisplayTime(eventItem) }}</p>
-            <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
-            <span class="event-link">{{ $t('event.viewDetails') }}</span>
-          </div>
-        </NuxtLink>
+          :event-item="eventItem"
+        />
       </div>
     </section>
 
-    <section class="section-block">
-      <div class="section-heading section-heading-inline">
-        <div>
-          <p class="section-kicker">{{ $t('home.upcomingTitle') }}</p>
-          <h2>{{ $t('home.upcomingSubtitle') }}</h2>
-        </div>
-        <NuxtLink class="section-link" :to="localePath('calendar')">
-          {{ $t('home.viewAll') }}
-        </NuxtLink>
-      </div>
+    <section v-if="highlightEvents.length > 0" class="home-section">
+      <HomeSectionHeader
+        :kicker="$t('home.highlightsKicker')"
+        :title="$t('home.highlightsTitle')"
+        :description="$t('home.highlightsDescription')"
+      />
 
-      <p v-if="error" class="state-copy">{{ $t('common.loadError') }}</p>
-      <p v-else-if="upcomingEvents.length === 0" class="state-copy">{{ $t('common.noEvents') }}</p>
-
-      <div v-else class="event-grid">
-        <NuxtLink
-          v-for="eventItem in upcomingEvents"
+      <div class="highlight-grid">
+        <HomeHighlightCard
+          v-for="eventItem in highlightEvents"
           :key="eventItem.id"
-          :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
-          class="event-card event-card-link"
-          :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
-          :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
-        >
-          <div class="date-badge">
-            <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
-            <span class="date-badge-day">{{ getDateBadge(eventItem).day }}</span>
-          </div>
-
-          <div class="event-card-body">
-            <div class="event-tag-row">
-              <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
-              <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
-            </div>
-            <h3 class="event-title">{{ eventItem.name }}</h3>
-            <p class="event-meta">{{ formatDate(eventItem.startTime) }}</p>
-            <p class="event-meta">
-              {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
-            </p>
-            <p class="event-meta">{{ eventItem.organizer || $t('common.tbdOrganizer') }}</p>
-            <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
-            <span class="event-link">{{ $t('event.viewDetails') }}</span>
-          </div>
-        </NuxtLink>
+          :event-item="eventItem"
+        />
       </div>
+    </section>
+
+    <section v-if="submissionFormUrl" class="submit-panel">
+      <div class="submit-copy">
+        <p class="submit-kicker">{{ $t("nav.submit") }}</p>
+        <h2 class="submit-title">{{ $t("home.submitTitle") }}</h2>
+        <p class="submit-description">{{ $t("home.submitDescription") }}</p>
+      </div>
+
+      <a
+        class="submit-button"
+        :href="submissionFormUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{ $t("home.submitAction") }}
+      </a>
     </section>
   </main>
 </template>
 
 <style scoped>
-.poster-page {
-  max-width: 1160px;
+.home-page {
+  display: grid;
+  gap: var(--bct-section-gap);
+  max-width: var(--bct-page-max);
   margin: 0 auto;
-  padding: 28px 20px 72px;
-  color: #f1e4c8;
+  padding: 28px var(--bct-page-gutter) 88px;
 }
 
-.hero-panel,
-.section-block {
-  margin-bottom: 28px;
-  padding: 28px;
-  border: 1px solid rgba(190, 154, 91, 0.4);
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(12, 27, 49, 0.96), rgba(7, 15, 28, 0.98)),
-    #091321;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+.home-section {
+  display: grid;
+  gap: 22px;
 }
 
-.hero-panel {
-  position: relative;
-  overflow: hidden;
-}
-
-.hero-panel::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at top right, rgba(142, 35, 35, 0.18), transparent 28%),
-    radial-gradient(circle at left center, rgba(183, 140, 63, 0.12), transparent 22%);
-  pointer-events: none;
-}
-
-.event-tag-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.event-tag-row .event-tag {
+.state-copy {
   margin: 0;
+  padding: 20px 22px;
+  border: 1px dashed rgba(200, 155, 70, 0.22);
+  border-radius: var(--bct-radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(248, 237, 210, 0.76);
+  line-height: 1.65;
 }
 
-.event-live-badge {
-  display: inline-flex;
+.recent-grid,
+.regular-grid,
+.highlight-grid {
+  display: grid;
+  gap: var(--bct-card-gap);
+}
+
+.recent-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.regular-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.highlight-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.submit-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: #7b2d26;
-  color: #f9edd8;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  padding: clamp(24px, 4vw, 36px);
+  border: 1px solid var(--bct-panel-border);
+  border-radius: calc(var(--bct-radius-lg) + 2px);
+  background: linear-gradient(
+      135deg,
+      rgba(14, 28, 47, 0.95),
+      rgba(7, 15, 28, 0.98)
+    ),
+    var(--bct-panel);
+  box-shadow: var(--bct-shadow);
 }
 
-.event-status-badge-cancelled,
-.event-status-badge-postponed {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.event-status-badge-cancelled {
-  background: rgba(112, 24, 24, 0.18);
-  color: #f3b4ad;
-  border: 1px solid rgba(243, 180, 173, 0.28);
-}
-
-.event-status-badge-postponed {
-  background: rgba(129, 92, 15, 0.18);
-  color: #f0d59c;
-  border: 1px solid rgba(240, 213, 156, 0.28);
-}
-
-.event-card-muted {
-  opacity: 0.82;
-}
-
-.hero-kicker,
-.section-kicker,
-.event-tag,
-.event-link,
-.section-link {
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.hero-kicker,
-.section-kicker {
+.submit-kicker {
   margin: 0 0 10px;
-  color: #d9b36c;
-  font-size: 0.82rem;
-}
-
-.hero-title {
-  margin: 0;
-  color: #f8efd8;
-  font-size: clamp(2.8rem, 8vw, 5.2rem);
-  line-height: 0.95;
-}
-
-.hero-subtitle {
-  max-width: 760px;
-  margin: 18px 0 0;
-  color: #f1e4c8;
-  font-size: 1.15rem;
-  line-height: 1.7;
-}
-
-.hero-subtitle-en {
-  color: #cfbf9f;
-  font-size: 1rem;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.hero-actions {
-  margin-top: 28px;
-}
-
-.poster-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 18px;
-  border: 1px solid rgba(241, 228, 200, 0.4);
-  border-radius: 999px;
-  color: #f8efd8;
-  text-decoration: none;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.poster-button-primary {
-  border-color: #c79b52;
-  background: #c79b52;
-  color: #10151f;
-  font-weight: 700;
-}
-
-.section-heading {
-  margin-bottom: 18px;
-}
-
-.section-heading h2 {
-  margin: 0;
-  color: #f8efd8;
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
-}
-
-.section-heading-inline {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.section-link,
-.event-link {
-  color: #d9b36c;
-  text-decoration: none;
-  font-size: 0.82rem;
-}
-
-.state-copy,
-.event-meta {
-  color: #d7c8aa;
-  line-height: 1.6;
-}
-
-.event-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-}
-
-.event-card {
-  display: grid;
-  grid-template-columns: 76px 1fr;
-  gap: 16px;
-  padding: 18px;
-  border: 1px solid rgba(198, 160, 95, 0.45);
-  border-radius: 16px;
-  background: linear-gradient(180deg, #efe1bf 0%, #e2cfaa 100%);
-  color: #1b1d27;
-  box-shadow: inset 0 0 0 1px rgba(111, 63, 28, 0.1);
-}
-
-.event-card-regular {
-  grid-template-columns: 76px 1fr;
-}
-
-.event-card-link {
-  color: inherit;
-  text-decoration: none;
-  cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.event-card-link:hover,
-.event-card-link:focus-visible {
-  transform: translateY(-3px);
-  border-color: #b8774e;
-  box-shadow: 0 16px 28px rgba(24, 17, 10, 0.14), inset 0 0 0 1px rgba(111, 63, 28, 0.1);
-}
-
-.event-card-link:focus-visible {
-  outline: 2px solid #7b2d26;
-  outline-offset: 2px;
-}
-
-.date-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 90px;
-  border: 1px solid rgba(108, 51, 29, 0.22);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #742b2b 0%, #4f1e23 100%);
-  color: #f9edd8;
-}
-
-.date-badge-recurring {
-  background: linear-gradient(180deg, #17304c 0%, #10263c 100%);
-}
-
-.date-badge-month {
+  color: var(--bct-gold);
   font-size: 0.8rem;
-  letter-spacing: 0.1em;
-}
-
-.date-badge-day {
-  font-size: 2rem;
   font-weight: 700;
-  line-height: 1;
-}
-
-.date-badge-day-small {
-  font-size: 1rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-.event-card-body {
-  min-width: 0;
+.submit-title {
+  margin: 0;
+  color: var(--bct-cream-strong);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.85rem, 3.5vw, 2.8rem);
+  line-height: 1.04;
 }
 
-.event-tag {
-  margin: 0 0 8px;
-  color: #7c3f24;
-  font-size: 0.78rem;
-  font-weight: 700;
+.submit-description {
+  max-width: 46ch;
+  margin: 14px 0 0;
+  color: rgba(248, 237, 210, 0.76);
+  line-height: 1.72;
 }
 
-.event-title {
-  margin: 0 0 10px;
-  color: #162235;
-  font-size: 1.2rem;
-}
-
-.event-meta {
-  margin: 0 0 6px;
-  color: #5d4f3f;
-}
-
-.event-summary {
-  margin: 12px 0 0;
-  color: #352d23;
-}
-
-.event-recurring {
-  color: #7c3f24;
-  font-weight: 600;
-}
-
-.event-link {
-  color: #7b2d26;
+.submit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--bct-gold);
+  color: #111827;
   font-weight: 700;
   text-decoration: none;
-  font-size: 0.82rem;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-.event-card-link:hover .event-link,
-.event-card-link:focus-visible .event-link {
-  color: #4f1715;
-  text-decoration: underline;
+.submit-button:hover,
+.submit-button:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.2);
+}
+
+.submit-button:focus-visible {
+  outline: 2px solid var(--bct-cream-strong);
+  outline-offset: 3px;
+}
+
+@media (max-width: 1180px) {
+  .recent-grid,
+  .regular-grid,
+  .highlight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
-  .poster-page {
-    padding-inline: 16px;
+  .home-page {
+    padding-top: 22px;
+    padding-bottom: 64px;
   }
 
-  .hero-panel,
-  .section-block {
-    padding: 20px;
-  }
-
-  .section-heading-inline {
-    align-items: start;
-    flex-direction: column;
-  }
-
-  .event-card {
+  .recent-grid,
+  .regular-grid,
+  .highlight-grid,
+  .submit-panel {
     grid-template-columns: 1fr;
   }
 
-  .date-badge {
-    width: 88px;
+  .submit-button {
+    width: 100%;
   }
 }
 </style>
