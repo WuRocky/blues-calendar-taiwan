@@ -31,7 +31,16 @@ const nextWeek = () => { weekOffset.value += 1 }
 const returnToCurrentWeek = () => { weekOffset.value = 0 }
 const selectedDay = computed(() => days.value.find(day => day.key === selectedKey.value) ?? days.value[0])
 const dateLocale = computed(() => locale.value === 'zh-TW' ? 'zh-TW' : locale.value)
-const range = computed(() => `${displayedWeekStart.value.format('M/D')}－${displayedWeekEnd.value.format('M/D')}`)
+const range = computed(() => {
+  const start = displayedWeekStart.value
+  const end = displayedWeekEnd.value
+  return start.year() === end.year()
+    ? `${start.format('M/D')}－${end.format('M/D')}`
+    : `${start.format('YYYY/M/D')}－${end.format('YYYY/M/D')}`
+})
+const rangeLabel = computed(() => weekOffset.value === 0
+  ? t('home.weeklyCalendar.currentWeekRange', { range: range.value })
+  : range.value)
 const weekday = (date: string, narrow = false) => new Intl.DateTimeFormat(dateLocale.value, { weekday: narrow ? 'narrow' : 'short', timeZone: TAIPEI_TIMEZONE }).format(new Date(date))
 const dayNumber = (date: string) => dayjs(date).tz(TAIPEI_TIMEZONE).format('D')
 const fullDay = (date: string) => new Intl.DateTimeFormat(dateLocale.value, { weekday: 'long', month: 'long', day: 'numeric', timeZone: TAIPEI_TIMEZONE }).format(new Date(date))
@@ -53,10 +62,10 @@ const isEnded = (event: EventItem) => event.eventStatus === 'scheduled' && event
     <header class="weekly-head"><h2 id="weekly-title">{{ t('home.weeklyCalendar.title') }}</h2></header>
     <nav class="week-navigation" :aria-label="t('home.weeklyCalendar.weekNavigation')">
       <button type="button" :aria-label="t('home.weeklyCalendar.previousWeek')" @click="previousWeek">← <span>{{ t('home.weeklyCalendar.previousWeek') }}</span></button>
-      <div class="displayed-range"><strong>{{ range }}</strong><small v-if="weekOffset === 0">{{ t('home.weeklyCalendar.currentWeek') }}</small></div>
+      <div class="displayed-range"><strong>{{ rangeLabel }}</strong></div>
       <button type="button" :aria-label="t('home.weeklyCalendar.nextWeek')" @click="nextWeek"><span>{{ t('home.weeklyCalendar.nextWeek') }}</span> →</button>
       <div class="week-actions">
-        <button type="button" class="return-current" :disabled="weekOffset === 0" @click="returnToCurrentWeek">{{ t('home.weeklyCalendar.returnToCurrentWeek') }}</button>
+        <button v-if="weekOffset !== 0" type="button" class="return-current" @click="returnToCurrentWeek">{{ t('home.weeklyCalendar.returnToCurrentWeek') }}</button>
         <NuxtLink :to="localePath('calendar')">{{ t('home.weeklyCalendar.viewAll') }} →</NuxtLink>
       </div>
     </nav>
