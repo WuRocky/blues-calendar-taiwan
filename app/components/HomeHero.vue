@@ -1,8 +1,4 @@
 <script setup lang="ts">
-defineProps<{
-  submissionFormUrl: string | null
-}>()
-
 const localePath = useLocalePath()
 </script>
 
@@ -21,17 +17,8 @@ const localePath = useLocalePath()
 
       <div class="hero-actions">
         <NuxtLink class="hero-button hero-button-primary" :to="localePath('calendar')">
-          {{ $t('home.viewEvents') }}
+          {{ $t('home.viewAllEvents') }}
         </NuxtLink>
-        <a
-          v-if="submissionFormUrl"
-          class="hero-button hero-button-secondary"
-          :href="submissionFormUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {{ $t('home.submitAction') }}
-        </a>
       </div>
     </div>
 
@@ -50,7 +37,7 @@ const localePath = useLocalePath()
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: clamp(20px, 4vw, 42px);
-  padding: clamp(24px, 5vw, 38px);
+  padding: clamp(24px, 4vw, 34px);
   border: 1px solid var(--bct-panel-border);
   border-radius: calc(var(--bct-radius-lg) + 2px);
   background:
@@ -89,7 +76,7 @@ const localePath = useLocalePath()
   margin: 16px 0 0;
   color: var(--bct-cream-strong);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2.35rem, 5vw, 4.3rem);
+  font-size: clamp(2.2rem, 4.5vw, 3.8rem);
   font-weight: 700;
   line-height: 0.98;
 }

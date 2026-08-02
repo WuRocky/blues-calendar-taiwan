@@ -60,6 +60,18 @@ function parseStoredEventTime(value: string | null) {
   return parsed.isValid() ? parsed : null
 }
 
+export function getEventTimeRangeInTaipei(event: Pick<BaseEventItem, 'startTime' | 'endTime'>) {
+  const start = parseStoredEventTime(event.startTime)
+  const end = event.endTime ? parseStoredEventTime(event.endTime) : start
+
+  if (!start || !end || end.isBefore(start)) return null
+
+  return {
+    start: start.tz(TAIPEI_TIMEZONE),
+    end: end.tz(TAIPEI_TIMEZONE)
+  }
+}
+
 export function normalizeNotionDateTime(value: string | null, boundary: 'start' | 'end'): NormalizedEventTime {
   if (!value) {
     return {

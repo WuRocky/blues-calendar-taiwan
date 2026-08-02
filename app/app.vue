@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { resolveTallyFormUrl } from '~~/lib/event-report'
 import { getOgLocale, resolveSeoImage, SITE_NAME } from '~~/lib/event-seo'
 
 const localePath = useLocalePath()
@@ -27,15 +26,6 @@ useSeoMeta({
   twitterCard: 'summary_large_image'
 })
 
-const submissionFormUrl = computed(() => {
-  const { url, warningReason } = resolveTallyFormUrl(config.public.eventSubmissionFormUrl)
-
-  if (import.meta.dev && warningReason) {
-    console.warn(`[forms] Submission form disabled: ${warningReason}`)
-  }
-
-  return url
-})
 </script>
 
 <template>
@@ -53,21 +43,13 @@ const submissionFormUrl = computed(() => {
         <NuxtLink :to="localePath('calendar')">
           {{ $t('nav.calendar') }}
         </NuxtLink>
-        <a
-          v-if="submissionFormUrl"
-          :href="submissionFormUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-          :aria-label="$t('nav.submit')"
-        >
-          {{ $t('nav.submit') }}
-        </a>
       </nav>
 
       <LanguageSwitcher />
     </header>
 
     <NuxtPage />
+    <AppFooter />
   </div>
 </template>
 
