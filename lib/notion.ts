@@ -4,6 +4,7 @@ import type { QueryDataSourceResponse } from '@notionhq/client/build/src/api-end
 import type { ListBlockChildrenResponse } from '@notionhq/client/build/src/api-endpoints/blocks'
 import { z } from 'zod'
 import { evaluateEventTime, normalizeNotionDateTime, shouldDisplayPublicEvent, sortEventsByDisplayPriority, withEventTimeStatus } from '~~/lib/event-time'
+import { selectDatedHomeCalendarEvents } from '~~/lib/home-events'
 import { normalizeEventStatus } from '~~/lib/event-status'
 import { collectPaginatedNotionResults } from '~~/lib/notion-pagination'
 import type { BaseEventItem, EventItem, EventStatus, EventType } from '~~/types/event'
@@ -424,6 +425,24 @@ export async function getPublishedEvents() {
   })
 
   return sortEventsByDisplayPriority(events)
+}
+
+export async function getHomeCalendarEvents() {
+  const config = useRuntimeConfig()
+
+  if (!config.notionEventsDatabaseId) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Missing NOTION_EVENTS_DATABASE_ID'
+    })
+  }
+
+  const publishedSource = await getCachedPublishedEventSource(config.notionEventsDatabaseId)
+  const mappedEvents = publishedSource.map(({ event, timeIssues }) =>
+    createEventItemWithTimeStatus(event, timeIssues)
+  )
+
+  return sortEventsByDisplayPriority(selectDatedHomeCalendarEvents(mappedEvents))
 }
 
 export async function getSitemapEvents() {

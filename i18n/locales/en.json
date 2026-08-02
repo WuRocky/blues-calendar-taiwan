@@ -12,9 +12,12 @@
     "submit": "Submit Event"
   },
   "home": {
+    "viewAllEvents": "View all events",
+    "weeklyCalendar": { "title": "This Week", "moreEvents": "{count} more events", "viewAll": "View all events", "today": "Today", "loadError": "Unable to load this week's events.", "retry": "Try again", "previousWeek": "Previous week", "nextWeek": "Next week", "returnToCurrentWeek": "Return to current week", "currentWeek": "Current week", "weekNavigation": "Week navigation" },
+    "quickExplore": { "title": "What are you looking for?", "socialDescription": "Community events for dancing and connecting", "classDescription": "Regular and one-off classes", "workshopDescription": "Focused classes and intensive workshops", "eventDescription": "Weekend events and larger gatherings" },
+    "highlights": { "title": "Featured Events" },
     "heroTitle": "Taiwan Blues Event Calendar",
     "heroDescription": "Find upcoming Blues classes, workshops, socials, and events.",
-    "quickExplore": "Quick Explore",
     "thisWeek": "This Week",
     "recentKicker": "This Week / Soon",
     "recentTitle": "Recent Events",
@@ -35,6 +38,8 @@
     "viewAll": "View All Events",
     "viewEvents": "View Events"
   },
+  "eventStatus": { "cancelled": "Cancelled", "postponed": "Postponed", "ongoing": "Ongoing", "ended": "Ended" },
+  "footer": { "siteDescription": "A platform for Blues classes, workshops, socials, and events in Taiwan.", "createdBy": "Created and maintained by Rocky", "creatorRoles": "Front-end Developer · Blues Dancer · Teacher", "creatorMessage": "Built for Taiwan's Blues community, making every class, social, and encounter easier to find.", "community": "Join the Community", "submitEvent": "Submit an event", "reportEvent": "Report event information", "instagramAria": "Open Rocky's Instagram in a new tab", "email": "Email Rocky", "copyright": "© {year} Blues Calendar Taiwan" },
   "category": {
     "class": "Regular Classes",
     "classLabel": "Regular Classes",
