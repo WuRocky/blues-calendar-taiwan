@@ -28,23 +28,30 @@ const { locale } = useI18n()
 <style scoped>
 .language-switcher {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
 .language-link {
-  padding: 8px 10px;
-  border: 1px solid rgba(241, 228, 200, 0.22);
-  border-radius: 999px;
-  color: #f1e4c8;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--bct-radius-sm);
+  color: var(--bct-text-muted);
   text-decoration: none;
-  font-size: 0.82rem;
+  font-size: var(--bct-text-xs);
+  line-height: 1.35;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.language-link:hover {
+  background: var(--bct-surface-strong);
+  color: var(--bct-primary);
 }
 
 .language-link-active {
-  border-color: #c79b52;
-  background: #c79b52;
-  color: #10151f;
+  border-color: var(--bct-panel-border);
+  background: var(--bct-surface);
+  color: var(--bct-primary);
   font-weight: 700;
 }
 </style>

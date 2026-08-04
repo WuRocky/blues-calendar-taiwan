@@ -1,31 +1,18 @@
 <script setup lang="ts">
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
-import timezone from 'dayjs/plugin/timezone'
-import { getEventDisplayStatus, getEventDisplayStatusLabel, isEventStatusMuted } from '~~/lib/event-status'
 import { buildLocaleAlternates, buildLocalizedUrl, getOgLocale, resolveSeoImage, SITE_NAME } from '~~/lib/event-seo'
 import { isUnscheduledRegularClass, shouldDisplayCalendarListEvent, shouldDisplayClassCalendarEvent, sortRegularClasses } from '~~/lib/event-time'
 import type { EventItem } from '~~/types/event'
 
-dayjs.extend(utc)
-dayjs.extend(timezone)
-
-type EventTypeFilter =
-  | 'all'
-  | 'class'
-  | 'workshop'
-  | 'social'
-  | 'event'
-
+type EventTypeFilter = 'all' | 'class' | 'workshop' | 'social' | 'event'
 type SpecificEventTypeFilter = Exclude<EventTypeFilter, 'all'>
 type FilterOption = { value: EventTypeFilter, label: string }
+type EventSection = { events: EventItem[], title: string | null }
 
 const { t, locale } = useI18n()
 const config = useRuntimeConfig()
-const localePath = useLocalePath()
 const activeFilter = ref<EventTypeFilter>('all')
 
-const { data: events, error } = await useFetch<EventItem[]>('/api/events', {
+const { data: events, error, status, refresh } = await useFetch<EventItem[]>('/api/events', {
   default: () => []
 })
 
@@ -45,119 +32,47 @@ function mapFilterType(eventType: string): SpecificEventTypeFilter {
   return 'event'
 }
 
-const regularClassEvents = computed(() => {
-  return sortRegularClasses(
-    (events.value || []).filter((eventItem) => isUnscheduledRegularClass(eventItem))
+const regularClassEvents = computed(() => sortRegularClasses(
+  (events.value || []).filter((eventItem) => isUnscheduledRegularClass(eventItem))
+))
+
+const upcomingAndOngoingEvents = computed(() => (events.value || []).filter((eventItem) => {
+  if (!shouldDisplayCalendarListEvent(eventItem)) return false
+  return !isUnscheduledRegularClass(eventItem)
+}))
+
+const singleClassEvents = computed(() => [...(events.value || [])]
+  .filter((eventItem) => shouldDisplayClassCalendarEvent(eventItem) && !isUnscheduledRegularClass(eventItem))
+  .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '') || a.name.localeCompare(b.name)))
+
+const filteredEvents = computed(() => {
+  if (activeFilter.value === 'all') return [...upcomingAndOngoingEvents.value, ...regularClassEvents.value]
+  if (activeFilter.value === 'class') return [...regularClassEvents.value, ...singleClassEvents.value]
+
+  return (events.value || []).filter((eventItem) =>
+    shouldDisplayCalendarListEvent(eventItem) && mapFilterType(eventItem.eventType) === activeFilter.value
   )
 })
 
-const upcomingAndOngoingEvents = computed(() => {
-  return (events.value || []).filter((eventItem) => {
-    if (!shouldDisplayCalendarListEvent(eventItem)) {
-      return false
-    }
-
-    return !isUnscheduledRegularClass(eventItem)
-  })
-})
-
-const singleClassEvents = computed(() => {
-  return [...(events.value || [])]
-    .filter((eventItem) => shouldDisplayClassCalendarEvent(eventItem) && !isUnscheduledRegularClass(eventItem))
-    .sort((a, b) => {
-      const startCompare = (a.startTime || '').localeCompare(b.startTime || '')
-
-      if (startCompare !== 0) {
-        return startCompare
-      }
-
-      return a.name.localeCompare(b.name)
-    })
-})
-
-const filteredEvents = computed(() => {
+const eventSections = computed<EventSection[]>(() => {
   if (activeFilter.value === 'all') {
-    return [...upcomingAndOngoingEvents.value, ...regularClassEvents.value]
+    return [
+      { title: t('calendar.regularClasses'), events: regularClassEvents.value },
+      { title: t('calendar.upcomingEvents'), events: upcomingAndOngoingEvents.value }
+    ].filter(section => section.events.length)
   }
 
   if (activeFilter.value === 'class') {
-    return [...regularClassEvents.value, ...singleClassEvents.value]
+    return [
+      { title: t('calendar.regularClasses'), events: regularClassEvents.value },
+      { title: t('calendar.recentSingleClasses'), events: singleClassEvents.value }
+    ].filter(section => section.events.length)
   }
 
-  return (events.value || []).filter((eventItem) => {
-    if (!shouldDisplayCalendarListEvent(eventItem)) {
-      return false
-    }
-
-    return mapFilterType(eventItem.eventType) === activeFilter.value
-  })
+  return [{ title: null, events: filteredEvents.value }]
 })
 
-function formatDate(date: string | null) {
-  return date ? dayjs.utc(date).tz('Asia/Taipei').format('YYYY/MM/DD HH:mm') : ''
-}
-
-function formatPosterDate(date: string | null) {
-  if (!date) {
-    return { month: 'TBD', day: '--' }
-  }
-
-  const localDate = dayjs.utc(date).tz('Asia/Taipei')
-  return {
-    month: localDate.format('MMM').toUpperCase(),
-    day: localDate.format('DD')
-  }
-}
-
-function getDateBadge(eventItem: EventItem) {
-  if (eventItem.recurring && eventItem.recurringText) {
-    return {
-      month: t('event.fixedBadge'),
-      day: t('event.classBadge')
-    }
-  }
-
-  if (eventItem.startTime) {
-    return formatPosterDate(eventItem.startTime)
-  }
-
-  return {
-    month: 'TBD',
-    day: '--'
-  }
-}
-
-function getEventTypeLabel(eventType: string) {
-  return t(`filters.${mapFilterType(eventType)}`)
-}
-
-function getStatusLabel(eventItem: EventItem) {
-  return getEventDisplayStatusLabel(getEventDisplayStatus(eventItem))
-}
-
-function getStatusBadgeClass(eventItem: EventItem) {
-  if (eventItem.eventStatus === 'cancelled') {
-    return 'event-status-badge-cancelled'
-  }
-
-  if (eventItem.eventStatus === 'postponed') {
-    return 'event-status-badge-postponed'
-  }
-
-  return 'event-live-badge'
-}
-
-function getDisplayTime(eventItem: EventItem) {
-  if (eventItem.startTime) {
-    return formatDate(eventItem.startTime)
-  }
-
-  if (eventItem.recurring && eventItem.recurringText) {
-    return eventItem.recurringText
-  }
-
-  return t('common.timeToBeAnnounced')
-}
+const activeFilterLabel = computed(() => filterOptions.value.find(option => option.value === activeFilter.value)?.label || '')
 
 useSeoMeta({
   title: () => `${t(`calendar.seo${activeFilter.value[0]!.toUpperCase()}${activeFilter.value.slice(1)}`)}｜${SITE_NAME}`,
@@ -186,511 +101,67 @@ useHead(() => {
 </script>
 
 <template>
-  <main class="poster-page">
-    <section class="header-panel">
-      <p class="section-kicker">{{ $t('calendar.kicker') }}</p>
+  <main class="calendar-page bct-container">
+    <header class="calendar-intro">
+      <p class="calendar-kicker">{{ $t('calendar.kicker') }}</p>
       <h1>{{ $t('calendar.title') }}</h1>
-      <p class="section-description">{{ $t('calendar.description') }}</p>
-    </section>
+      <p class="calendar-description">{{ $t('calendar.description') }}</p>
+      <div class="calendar-context" aria-live="polite">
+        <p>{{ $t('calendar.currentFilter', { filter: activeFilterLabel }) }}</p>
+        <p>{{ $t('calendar.resultsCount', { count: filteredEvents.length }) }}</p>
+      </div>
+    </header>
 
-    <section class="filter-panel">
-      <div class="filter-row">
+    <section class="calendar-controls" :aria-label="$t('calendar.filterLabel')">
+      <div class="filter-row" role="group" :aria-label="$t('calendar.filterLabel')">
         <button
           v-for="option in filterOptions"
           :key="option.value"
           class="filter-chip"
           :class="{ 'filter-chip-active': activeFilter === option.value }"
           type="button"
+          :aria-pressed="activeFilter === option.value"
           @click="activeFilter = option.value"
         >
           {{ option.label }}
         </button>
       </div>
+      <button v-if="activeFilter !== 'all'" class="clear-filter" type="button" @click="activeFilter = 'all'">
+        {{ $t('calendar.clearFilter') }}
+      </button>
     </section>
 
-    <section class="list-panel">
-      <p v-if="error" class="state-copy">{{ $t('common.loadError') }}</p>
-      <p v-else-if="filteredEvents.length === 0" class="state-copy">{{ $t('common.noMatchingEvents') }}</p>
+    <section class="calendar-results" :aria-busy="status === 'pending'">
+      <div v-if="status === 'pending'" class="event-grid event-grid-skeleton" aria-hidden="true">
+        <span v-for="index in 6" :key="index" class="event-skeleton" />
+      </div>
 
-      <div v-else class="event-list">
-        <template v-if="activeFilter === 'all'">
-          <div v-if="regularClassEvents.length" class="calendar-section-heading">
-            <h2>{{ $t('calendar.regularClasses') }}</h2>
+      <div v-else-if="error" class="calendar-state">
+        <p>{{ $t('common.loadError') }}</p>
+        <button class="bct-button bct-button--secondary" type="button" @click="() => refresh()">
+          {{ $t('calendar.retry') }}
+        </button>
+      </div>
+
+      <div v-else-if="filteredEvents.length === 0" class="calendar-state">
+        <p>{{ $t('common.noMatchingEvents') }}</p>
+        <button v-if="activeFilter !== 'all'" class="bct-button bct-button--secondary" type="button" @click="activeFilter = 'all'">
+          {{ $t('calendar.emptyAction') }}
+        </button>
+      </div>
+
+      <div v-else class="calendar-section-list">
+        <section v-for="section in eventSections" :key="section.title || activeFilter" class="calendar-event-section">
+          <h2 v-if="section.title">{{ section.title }}</h2>
+          <div class="event-grid">
+            <CalendarEventCard v-for="eventItem in section.events" :key="eventItem.id" :event-item="eventItem" />
           </div>
-
-          <div v-if="regularClassEvents.length" class="event-list regular-list">
-            <NuxtLink
-              v-for="eventItem in regularClassEvents"
-              :key="eventItem.id"
-              :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
-              class="event-card event-card-link"
-              :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
-              :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
-            >
-              <div class="date-badge">
-                <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
-                <span class="date-badge-day date-badge-day-small">{{ getDateBadge(eventItem).day }}</span>
-              </div>
-
-              <div class="event-content">
-                <div class="event-head">
-                  <div>
-                    <div class="event-tag-row">
-                      <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
-                      <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
-                    </div>
-                    <h2 class="event-title">{{ eventItem.name }}</h2>
-                  </div>
-                  <span class="event-link">{{ $t('event.viewDetails') }}</span>
-                </div>
-
-                <p class="event-meta">{{ getDisplayTime(eventItem) }}</p>
-                <p class="event-meta">
-                  {{ eventItem.organizer || $t('common.tbdOrganizer') }}
-                </p>
-                <p class="event-meta">
-                  {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
-                </p>
-                <p v-if="eventItem.recurring && eventItem.recurringText && !eventItem.startTime" class="event-meta event-recurring">
-                  {{ eventItem.recurringText }}
-                </p>
-                <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
-              </div>
-            </NuxtLink>
-          </div>
-
-          <div v-if="upcomingAndOngoingEvents.length" class="event-list regular-list">
-            <NuxtLink
-              v-for="eventItem in upcomingAndOngoingEvents"
-              :key="eventItem.id"
-              :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
-              class="event-card event-card-link"
-              :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
-              :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
-            >
-              <div class="date-badge">
-                <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
-                <span class="date-badge-day" :class="{ 'date-badge-day-small': eventItem.recurring && eventItem.recurringText }">
-                  {{ getDateBadge(eventItem).day }}
-                </span>
-              </div>
-
-              <div class="event-content">
-                <div class="event-head">
-                  <div>
-                    <div class="event-tag-row">
-                      <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
-                      <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
-                    </div>
-                    <h2 class="event-title">{{ eventItem.name }}</h2>
-                  </div>
-                  <span class="event-link">{{ $t('event.viewDetails') }}</span>
-                </div>
-
-                <p class="event-meta">{{ getDisplayTime(eventItem) }}</p>
-                <p class="event-meta">
-                  {{ eventItem.organizer || $t('common.tbdOrganizer') }}
-                </p>
-                <p class="event-meta">
-                  {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
-                </p>
-                <p v-if="eventItem.recurring && eventItem.recurringText && !eventItem.startTime" class="event-meta event-recurring">
-                  {{ eventItem.recurringText }}
-                </p>
-                <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
-              </div>
-            </NuxtLink>
-          </div>
-        </template>
-
-        <template v-else-if="activeFilter === 'class'">
-          <div v-if="regularClassEvents.length" class="calendar-section-heading">
-            <h2>{{ $t('calendar.regularClasses') }}</h2>
-          </div>
-
-          <div v-if="regularClassEvents.length" class="event-list regular-list">
-            <NuxtLink
-              v-for="eventItem in regularClassEvents"
-              :key="eventItem.id"
-              :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
-              class="event-card event-card-link"
-              :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
-              :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
-            >
-              <div class="date-badge">
-                <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
-                <span class="date-badge-day date-badge-day-small">{{ getDateBadge(eventItem).day }}</span>
-              </div>
-
-              <div class="event-content">
-                <div class="event-head">
-                  <div>
-                    <div class="event-tag-row">
-                      <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
-                      <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
-                    </div>
-                    <h2 class="event-title">{{ eventItem.name }}</h2>
-                  </div>
-                  <span class="event-link">{{ $t('event.viewDetails') }}</span>
-                </div>
-
-                <p class="event-meta">{{ getDisplayTime(eventItem) }}</p>
-                <p class="event-meta">
-                  {{ eventItem.organizer || $t('common.tbdOrganizer') }}
-                </p>
-                <p class="event-meta">
-                  {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
-                </p>
-                <p v-if="eventItem.recurring && eventItem.recurringText && !eventItem.startTime" class="event-meta event-recurring">
-                  {{ eventItem.recurringText }}
-                </p>
-                <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
-              </div>
-            </NuxtLink>
-          </div>
-
-          <div v-if="singleClassEvents.length" class="calendar-section-heading">
-            <h2>{{ $t('calendar.recentSingleClasses') }}</h2>
-          </div>
-
-          <div v-if="singleClassEvents.length" class="event-list regular-list">
-            <NuxtLink
-              v-for="eventItem in singleClassEvents"
-              :key="eventItem.id"
-              :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
-              class="event-card event-card-link"
-              :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
-              :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
-            >
-              <div class="date-badge">
-                <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
-                <span class="date-badge-day" :class="{ 'date-badge-day-small': eventItem.recurring && eventItem.recurringText }">
-                  {{ getDateBadge(eventItem).day }}
-                </span>
-              </div>
-
-              <div class="event-content">
-                <div class="event-head">
-                  <div>
-                    <div class="event-tag-row">
-                      <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
-                      <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
-                    </div>
-                    <h2 class="event-title">{{ eventItem.name }}</h2>
-                  </div>
-                  <span class="event-link">{{ $t('event.viewDetails') }}</span>
-                </div>
-
-                <p class="event-meta">{{ getDisplayTime(eventItem) }}</p>
-                <p class="event-meta">
-                  {{ eventItem.organizer || $t('common.tbdOrganizer') }}
-                </p>
-                <p class="event-meta">
-                  {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
-                </p>
-                <p v-if="eventItem.recurring && eventItem.recurringText && !eventItem.startTime" class="event-meta event-recurring">
-                  {{ eventItem.recurringText }}
-                </p>
-                <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
-              </div>
-            </NuxtLink>
-          </div>
-        </template>
-
-        <template v-else>
-          <NuxtLink
-            v-for="eventItem in filteredEvents"
-            :key="eventItem.id"
-            :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
-            class="event-card event-card-link"
-            :class="{ 'event-card-muted': isEventStatusMuted(eventItem) }"
-            :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
-          >
-            <div class="date-badge">
-              <span class="date-badge-month">{{ getDateBadge(eventItem).month }}</span>
-              <span class="date-badge-day" :class="{ 'date-badge-day-small': eventItem.recurring && eventItem.recurringText }">
-                {{ getDateBadge(eventItem).day }}
-              </span>
-            </div>
-
-            <div class="event-content">
-              <div class="event-head">
-                <div>
-                  <div class="event-tag-row">
-                    <p class="event-tag">{{ getEventTypeLabel(eventItem.eventType) }}</p>
-                    <span v-if="getStatusLabel(eventItem)" :class="getStatusBadgeClass(eventItem)">{{ getStatusLabel(eventItem) }}</span>
-                  </div>
-                  <h2 class="event-title">{{ eventItem.name }}</h2>
-                </div>
-                <span class="event-link">{{ $t('event.viewDetails') }}</span>
-              </div>
-
-              <p class="event-meta">{{ getDisplayTime(eventItem) }}</p>
-              <p class="event-meta">
-                {{ eventItem.organizer || $t('common.tbdOrganizer') }}
-              </p>
-              <p class="event-meta">
-                {{ eventItem.city || $t('common.tbdCity') }} · {{ eventItem.venueName || $t('common.tbdVenue') }}
-              </p>
-              <p v-if="eventItem.recurring && eventItem.recurringText && !eventItem.startTime" class="event-meta event-recurring">
-                {{ eventItem.recurringText }}
-              </p>
-              <p class="event-summary">{{ eventItem.summary || $t('common.noSummary') }}</p>
-            </div>
-          </NuxtLink>
-        </template>
+        </section>
       </div>
     </section>
   </main>
 </template>
 
 <style scoped>
-.poster-page {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 28px 20px 72px;
-  color: #f1e4c8;
-}
-
-.header-panel,
-.filter-panel,
-.list-panel {
-  margin-bottom: 24px;
-  padding: 24px;
-  border: 1px solid rgba(190, 154, 91, 0.36);
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(12, 27, 49, 0.96), rgba(7, 15, 28, 0.98)),
-    #091321;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
-}
-
-.section-kicker,
-.event-tag {
-  margin: 0 0 10px;
-  color: #d9b36c;
-  font-size: 0.82rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.header-panel h1 {
-  margin: 0;
-  color: #f8efd8;
-  font-size: clamp(2.1rem, 6vw, 4rem);
-}
-
-.section-description,
-.state-copy,
-.event-meta {
-  color: #d7c8aa;
-}
-
-.event-tag-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.event-tag-row .event-tag {
-  margin: 0;
-}
-
-.event-live-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: #7b2d26;
-  color: #f9edd8;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.event-status-badge-cancelled,
-.event-status-badge-postponed {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.event-status-badge-cancelled {
-  background: rgba(112, 24, 24, 0.18);
-  color: #f3b4ad;
-  border: 1px solid rgba(243, 180, 173, 0.28);
-}
-
-.event-status-badge-postponed {
-  background: rgba(129, 92, 15, 0.18);
-  color: #f0d59c;
-  border: 1px solid rgba(240, 213, 156, 0.28);
-}
-
-.event-card-muted {
-  opacity: 0.82;
-}
-
-.filter-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.filter-chip {
-  padding: 10px 14px;
-  border: 1px solid rgba(241, 228, 200, 0.28);
-  border-radius: 999px;
-  color: #f1e4c8;
-  background: rgba(255, 255, 255, 0.04);
-  cursor: pointer;
-}
-
-.filter-chip-active {
-  border-color: #c79b52;
-  background: #c79b52;
-  color: #10151f;
-  font-weight: 700;
-}
-
-.event-list {
-  display: grid;
-  gap: 16px;
-}
-
-.event-card {
-  display: grid;
-  grid-template-columns: 88px 1fr;
-  gap: 16px;
-  padding: 18px;
-  border: 1px solid rgba(198, 160, 95, 0.45);
-  border-radius: 16px;
-  background: linear-gradient(180deg, #efe1bf 0%, #e2cfaa 100%);
-  color: #1b1d27;
-}
-
-.event-card-link {
-  color: inherit;
-  text-decoration: none;
-  cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.event-card-link:hover,
-.event-card-link:focus-visible {
-  transform: translateY(-3px);
-  border-color: #b8774e;
-  box-shadow: 0 16px 28px rgba(24, 17, 10, 0.14);
-}
-
-.event-card-link:focus-visible {
-  outline: 2px solid #7b2d26;
-  outline-offset: 2px;
-}
-
-.date-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 96px;
-  border: 1px solid rgba(108, 51, 29, 0.22);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #742b2b 0%, #4f1e23 100%);
-  color: #f9edd8;
-}
-
-.date-badge-month {
-  font-size: 0.8rem;
-  letter-spacing: 0.1em;
-}
-
-.date-badge-day {
-  font-size: 2rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.date-badge-day-small {
-  font-size: 1rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.event-head {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.event-title {
-  margin: 0 0 10px;
-  color: #162235;
-  font-size: 1.3rem;
-}
-
-.event-tag {
-  margin-bottom: 6px;
-  color: #7c3f24;
-  font-weight: 700;
-}
-
-.event-link {
-  color: #7b2d26;
-  text-decoration: none;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.event-card-link:hover .event-link,
-.event-card-link:focus-visible .event-link {
-  color: #4f1715;
-  text-decoration: underline;
-}
-
-.event-meta {
-  margin: 0 0 6px;
-  color: #5d4f3f;
-}
-
-.event-summary {
-  margin: 10px 0 0;
-  color: #352d23;
-  line-height: 1.6;
-}
-
-.event-recurring {
-  color: #7c3f24;
-  font-weight: 600;
-}
-
-@media (max-width: 720px) {
-  .poster-page {
-    padding-inline: 16px;
-  }
-
-  .header-panel,
-  .filter-panel,
-  .list-panel {
-    padding: 18px;
-  }
-
-  .event-card {
-    grid-template-columns: 1fr;
-  }
-
-  .date-badge {
-    width: 88px;
-  }
-
-  .event-head {
-    flex-direction: column;
-  }
-}
+.calendar-page{display:grid;gap:clamp(36px,6vw,72px);padding-block:clamp(38px,7vw,92px) clamp(72px,10vw,144px)}.calendar-intro{max-width:var(--bct-reading-max)}.calendar-kicker{margin:0 0 var(--bct-space-3);color:var(--bct-accent);font-size:var(--bct-text-xs);font-weight:700;letter-spacing:.13em;line-height:1.35;text-transform:uppercase}.calendar-intro h1{margin:0;color:var(--bct-primary);font-family:var(--bct-font-serif);font-size:clamp(2.25rem,4.5vw,4.2rem);font-weight:500;letter-spacing:-.04em;line-height:1.05}.calendar-description{max-width:57ch;margin:var(--bct-space-4) 0 0;color:var(--bct-text-muted);font-size:var(--bct-text-lg);line-height:1.65}.calendar-context{display:flex;flex-wrap:wrap;gap:var(--bct-space-2) var(--bct-space-6);margin-top:var(--bct-space-6);color:var(--bct-text-subtle);font-size:var(--bct-text-sm)}.calendar-context p{margin:0}.calendar-context p:last-child{color:var(--bct-primary);font-weight:700}.calendar-controls{display:flex;align-items:start;justify-content:space-between;gap:var(--bct-space-4);padding:var(--bct-space-4) 0;border-top:1px solid var(--bct-panel-border);border-bottom:1px solid var(--bct-panel-border)}.filter-row{display:flex;flex-wrap:wrap;gap:var(--bct-space-2)}.filter-chip,.clear-filter{min-height:40px;border:1px solid transparent;border-radius:var(--bct-radius-sm);background:transparent;color:var(--bct-primary);cursor:pointer;font-size:var(--bct-text-sm);font-weight:700;line-height:1.25;transition:background-color 160ms ease,border-color 160ms ease,color 160ms ease}.filter-chip{padding:0 12px}.filter-chip:hover{background:var(--bct-surface-strong)}.filter-chip-active{border-color:var(--bct-primary);background:var(--bct-primary);color:#fffdf8}.filter-chip-active:hover{background:var(--bct-primary-hover);color:#fffdf8}.clear-filter{padding:0 4px;color:var(--bct-accent);text-decoration:underline;text-decoration-color:currentColor;text-decoration-thickness:1px;text-underline-offset:.25em}.clear-filter:hover{color:var(--bct-primary)}.calendar-section-list{display:grid;gap:clamp(52px,8vw,104px)}.calendar-event-section{display:grid;gap:var(--bct-space-6)}.calendar-event-section h2{margin:0;color:var(--bct-primary);font-family:var(--bct-font-serif);font-size:var(--bct-text-xl);font-weight:500;letter-spacing:-.025em;line-height:1.12}.event-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(28px,4vw,52px) var(--bct-card-gap)}.calendar-state{display:grid;justify-items:start;gap:var(--bct-space-4);max-width:var(--bct-reading-max);padding:var(--bct-space-8) 0;border-top:1px solid var(--bct-panel-border);border-bottom:1px solid var(--bct-panel-border)}.calendar-state p{margin:0;color:var(--bct-text-muted);font-size:var(--bct-text-lg)}.event-grid-skeleton{pointer-events:none}.event-skeleton{display:block;min-height:390px;border-top:1px solid var(--bct-panel-border);background:linear-gradient(110deg,var(--bct-surface-strong) 12%,var(--bct-surface) 28%,var(--bct-surface-strong) 48%);background-size:220% 100%;animation:calendar-shimmer 1.6s linear infinite}@keyframes calendar-shimmer{to{background-position:-220% 0}}@media(max-width:1000px){.event-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.calendar-page{gap:var(--bct-space-8);padding-top:var(--bct-space-12)}.calendar-controls{display:grid}.filter-row{flex-wrap:nowrap;max-width:100%;overflow-x:auto;padding-bottom:2px}.filter-chip{flex:0 0 auto}.clear-filter{justify-self:start}.event-grid{grid-template-columns:1fr;gap:var(--bct-space-8)}.event-skeleton{min-height:400px}}@media(prefers-reduced-motion:reduce){.event-skeleton{animation:none}}
 </style>

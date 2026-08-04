@@ -10,6 +10,7 @@ dayjs.extend(timezone)
 
 const props = defineProps<{
   eventItem: EventItem
+  variant?: 'featured' | 'supporting'
 }>()
 
 const localePath = useLocalePath()
@@ -60,7 +61,7 @@ function getDateLine(eventItem: EventItem) {
   <NuxtLink
     :to="localePath({ name: 'events-slug', params: { slug: eventItem.slug } })"
     class="highlight-card"
-    :class="{ 'highlight-card-muted': eventItem.eventStatus !== 'scheduled' }"
+    :class="[`highlight-card-${variant ?? 'supporting'}`, { 'highlight-card-muted': eventItem.eventStatus !== 'scheduled' }]"
     :aria-label="`${$t('event.viewDetails')} ${eventItem.name}`"
   >
     <div class="highlight-media">
@@ -97,26 +98,22 @@ function getDateLine(eventItem: EventItem) {
 <style scoped>
 .highlight-card {
   display: grid;
-  grid-template-rows: auto 1fr;
-  overflow: hidden;
-  border: 1px solid rgba(200, 155, 70, 0.28);
-  border-radius: var(--bct-radius-lg);
-  background: rgba(8, 18, 32, 0.92);
-  box-shadow: var(--bct-shadow);
-  color: inherit;
+  overflow: clip;
+  border-top: 1px solid var(--bct-panel-border);
+  background: var(--bct-surface);
+  color: var(--bct-text);
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: background-color 160ms ease, border-color 160ms ease;
 }
 
 .highlight-card:hover,
 .highlight-card:focus-visible {
-  transform: translateY(-4px);
-  border-color: rgba(200, 155, 70, 0.48);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.26);
+  border-color: var(--bct-accent);
+  background: var(--bct-bg-soft);
 }
 
 .highlight-card:focus-visible {
-  outline: 2px solid var(--bct-gold);
+  outline: 2px solid var(--bct-focus);
   outline-offset: 3px;
 }
 
@@ -125,9 +122,9 @@ function getDateLine(eventItem: EventItem) {
 }
 
 .highlight-media {
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
   overflow: hidden;
-  background: #14243d;
+  background: var(--bct-surface-strong);
 }
 
 .highlight-image,
@@ -139,18 +136,19 @@ function getDateLine(eventItem: EventItem) {
 .highlight-image {
   display: block;
   object-fit: cover;
+  transition: transform 300ms ease;
 }
 
 .highlight-placeholder {
   background:
-    radial-gradient(circle at top right, rgba(200, 155, 70, 0.28), transparent 34%),
-    linear-gradient(135deg, rgba(159, 58, 36, 0.4), rgba(14, 28, 47, 0.98));
+    radial-gradient(circle at 82% 22%, rgba(183, 123, 53, 0.48), transparent 24%),
+    linear-gradient(135deg, #234967 0%, #183a59 48%, #a84d36 130%);
 }
 
 .highlight-content {
   display: grid;
-  gap: 12px;
-  padding: 20px;
+  gap: var(--bct-space-3);
+  padding: clamp(20px, 2.5vw, 30px) clamp(20px, 2.5vw, 32px) clamp(28px, 3.4vw, 40px);
 }
 
 .highlight-head {
@@ -162,8 +160,8 @@ function getDateLine(eventItem: EventItem) {
 
 .highlight-type {
   margin: 0;
-  color: var(--bct-gold);
-  font-size: 0.78rem;
+  color: var(--bct-accent);
+  font-size: var(--bct-text-xs);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -171,14 +169,17 @@ function getDateLine(eventItem: EventItem) {
 
 .highlight-title {
   margin: 0;
-  color: var(--bct-cream-strong);
-  font-size: 1.45rem;
-  line-height: 1.18;
+  color: var(--bct-primary);
+  font-family: var(--bct-font-serif);
+  font-size: clamp(1.45rem, 2.3vw, 2.4rem);
+  font-weight: 500;
+  line-height: 1.12;
 }
 
 .highlight-date {
   margin: 0;
-  color: rgba(248, 237, 210, 0.84);
+  color: var(--bct-text);
+  font-size: var(--bct-text-sm);
   font-weight: 700;
 }
 
@@ -190,32 +191,90 @@ function getDateLine(eventItem: EventItem) {
 
 .highlight-meta-item {
   margin: 0;
-  color: rgba(248, 237, 210, 0.72);
+  color: var(--bct-text-muted);
+  font-size: var(--bct-text-sm);
 }
 
 .highlight-status {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 0.76rem;
+  min-height: 24px;
+  padding: 0 7px;
+  border-radius: var(--bct-radius-sm);
+  font-size: var(--bct-text-xs);
   font-weight: 800;
 }
 
 .highlight-status-cancelled {
-  background: rgba(122, 31, 31, 0.18);
-  color: #f3b4ad;
+  background: #f2d9d3;
+  color: #7a1f1f;
 }
 
 .highlight-status-postponed {
-  background: rgba(122, 82, 8, 0.18);
-  color: #f0d59c;
+  background: #f3e4c8;
+  color: #71500e;
 }
 
 .highlight-status-ongoing {
-  background: rgba(123, 45, 38, 0.2);
-  color: #f4d0c7;
+  background: #dce8e5;
+  color: #244e4c;
+}
+
+.highlight-card-featured .highlight-media {
+  aspect-ratio: 4 / 3;
+}
+
+.highlight-card-featured .highlight-content {
+  max-width: 48rem;
+}
+
+.highlight-card-supporting {
+  grid-template-columns: minmax(112px, .72fr) minmax(0, 1fr);
+  gap: var(--bct-space-4);
+  align-items: start;
+}
+
+.highlight-card-supporting .highlight-media {
+  align-self: start;
+  aspect-ratio: 1 / 1;
+}
+
+.highlight-card-supporting .highlight-content {
+  align-content: start;
+  padding: 0 var(--bct-space-3) var(--bct-space-6) 0;
+}
+
+.highlight-card-supporting .highlight-title {
+  font-size: clamp(1.25rem, 1.7vw, 1.65rem);
+}
+
+@media (hover: hover) {
+  .highlight-card:hover .highlight-image {
+    transform: scale(1.025);
+  }
+}
+
+@media (max-width: 760px) {
+  .highlight-card-supporting {
+    grid-template-columns: minmax(124px, .58fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 440px) {
+  .highlight-card-supporting {
+    grid-template-columns: 108px minmax(0, 1fr);
+  }
+
+  .highlight-card-supporting .highlight-meta {
+    display: grid;
+    gap: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .highlight-image {
+    transition: none;
+  }
 }
 </style>

@@ -33,7 +33,7 @@ defineProps<{
   display: flex;
   align-items: end;
   justify-content: space-between;
-  gap: 18px;
+  gap: var(--bct-space-6);
 }
 
 .section-header-copy {
@@ -41,9 +41,9 @@ defineProps<{
 }
 
 .section-kicker {
-  margin: 0 0 10px;
-  color: var(--bct-gold);
-  font-size: 0.78rem;
+  margin: 0 0 var(--bct-space-3);
+  color: var(--bct-accent);
+  font-size: var(--bct-text-xs);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -51,22 +51,25 @@ defineProps<{
 
 .section-title {
   margin: 0;
-  color: var(--bct-cream-strong);
-  font-size: clamp(1.7rem, 3vw, 2.45rem);
-  line-height: 1.02;
+  color: var(--bct-primary);
+  font-family: var(--bct-font-serif);
+  font-size: var(--bct-text-xl);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
 }
 
 .section-description {
   max-width: 60ch;
-  margin: 12px 0 0;
-  color: rgba(248, 237, 210, 0.76);
+  margin: var(--bct-space-3) 0 0;
+  color: var(--bct-text-muted);
   line-height: 1.7;
 }
 
 .section-link {
   flex-shrink: 0;
-  color: var(--bct-gold);
-  font-size: 0.88rem;
+  color: var(--bct-primary);
+  font-size: var(--bct-text-sm);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-decoration: none;
@@ -75,7 +78,7 @@ defineProps<{
 
 .section-link:hover,
 .section-link:focus-visible {
-  color: var(--bct-cream-strong);
+  color: var(--bct-accent);
   text-decoration: underline;
 }
 

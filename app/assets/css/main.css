@@ -1,24 +1,59 @@
 :root {
-  --bct-bg: #07111f;
-  --bct-bg-soft: #102038;
-  --bct-panel: rgba(9, 19, 33, 0.94);
-  --bct-panel-border: rgba(200, 155, 70, 0.24);
-  --bct-cream: #f3e2b8;
-  --bct-cream-strong: #f8edd2;
-  --bct-text-dark: #10213a;
-  --bct-text-muted: #685945;
-  --bct-gold: #c89b46;
-  --bct-gold-soft: rgba(200, 155, 70, 0.18);
-  --bct-copper: #9f3a24;
-  --bct-wine: #72292d;
-  --bct-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
-  --bct-radius-lg: 24px;
-  --bct-radius-md: 18px;
-  --bct-radius-sm: 14px;
-  --bct-page-max: 1240px;
-  --bct-page-gutter: clamp(16px, 3vw, 28px);
-  --bct-section-gap: clamp(44px, 6vw, 84px);
-  --bct-card-gap: clamp(16px, 2vw, 22px);
+  /* Color: a warm paper base with ink-like text and restrained blues accents. */
+  --bct-bg: #f4f0e8;
+  --bct-bg-soft: #ebe4d7;
+  --bct-surface: #faf7f0;
+  --bct-surface-strong: #e4dac9;
+  --bct-panel: rgba(250, 247, 240, 0.94);
+  --bct-panel-border: #d5cabc;
+  --bct-text: #272b2f;
+  --bct-text-muted: #68665f;
+  --bct-text-subtle: #89857b;
+  --bct-primary: #183a59;
+  --bct-primary-hover: #102d46;
+  --bct-primary-active: #0c2438;
+  --bct-accent: #a84d36;
+  --bct-accent-warm: #b77b35;
+  --bct-accent-soft: #f0e2cf;
+  --bct-focus: #b77b35;
+
+  /* Typography: serif is reserved for display headings; sans remains the reading face. */
+  --bct-font-sans: "Avenir Next", "Noto Sans TC", "Noto Sans JP", "Noto Sans KR", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --bct-font-serif: Iowan Old Style, "Noto Serif TC", "Songti TC", "Hiragino Mincho ProN", Georgia, serif;
+  --bct-text-xs: 0.75rem;
+  --bct-text-sm: 0.875rem;
+  --bct-text-base: 1rem;
+  --bct-text-lg: clamp(1.125rem, 1.1vw + 0.9rem, 1.35rem);
+  --bct-text-xl: clamp(1.5rem, 2.1vw + 1rem, 2.5rem);
+  --bct-text-2xl: clamp(2.25rem, 4vw + 1rem, 4.5rem);
+
+  /* Layout and rhythm. */
+  --bct-content-max: 1280px;
+  --bct-page-max: var(--bct-content-max);
+  --bct-reading-max: 760px;
+  --bct-page-gutter: clamp(20px, 4vw, 56px);
+  --bct-section-gap: clamp(64px, 9vw, 144px);
+  --bct-card-gap: clamp(16px, 2vw, 28px);
+  --bct-space-2: 0.5rem;
+  --bct-space-3: 0.75rem;
+  --bct-space-4: 1rem;
+  --bct-space-6: 1.5rem;
+  --bct-space-8: 2rem;
+  --bct-space-12: 3rem;
+
+  --bct-radius-sm: 4px;
+  --bct-radius-md: 8px;
+  --bct-radius-lg: 12px;
+  --bct-shadow: 0 12px 28px rgba(39, 43, 47, 0.07);
+
+  /* Compatibility aliases for existing components during the staged redesign. */
+  --bct-cream: #f4f0e8;
+  --bct-cream-strong: #272b2f;
+  --bct-text-dark: #272b2f;
+  --bct-gold: #b77b35;
+  --bct-gold-soft: rgba(183, 123, 53, 0.14);
+  --bct-copper: #a84d36;
+  --bct-wine: #7d4035;
 }
 
 html,
@@ -29,22 +64,34 @@ body,
   background: var(--bct-bg);
 }
 
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
 body {
-  color: var(--bct-cream-strong);
-  font-family:
-    "Avenir Next",
-    "Noto Sans TC",
-    "Noto Sans JP",
-    "Noto Sans KR",
-    "PingFang TC",
-    "Microsoft JhengHei",
-    sans-serif;
+  color: var(--bct-text);
+  font-family: var(--bct-font-sans);
+  font-size: var(--bct-text-base);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+img,
+picture,
+svg {
+  max-width: 100%;
+}
+
+img {
+  height: auto;
 }
 
 a,
@@ -55,10 +102,122 @@ textarea {
   font: inherit;
 }
 
+button,
+[role='button'] {
+  touch-action: manipulation;
+}
+
+a {
+  color: var(--bct-primary);
+  text-decoration-color: color-mix(in srgb, currentColor 42%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  transition: color 160ms ease, text-decoration-color 160ms ease;
+}
+
+a:hover {
+  color: var(--bct-accent);
+  text-decoration-color: currentColor;
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--bct-focus);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--bct-accent-soft);
+  color: var(--bct-text);
+}
+
 .app-shell {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top right, rgba(158, 58, 36, 0.14), transparent 28rem),
-    radial-gradient(circle at left top, rgba(200, 155, 70, 0.1), transparent 24rem),
-    linear-gradient(180deg, #07111f 0%, #030812 100%);
+    radial-gradient(circle at 92% 8%, rgba(183, 123, 53, 0.09), transparent 23rem),
+    radial-gradient(circle at 5% 38%, rgba(168, 77, 54, 0.055), transparent 28rem),
+    var(--bct-bg);
+}
+
+/* The single horizontal rhythm for all readable page content. */
+.bct-container {
+  --bct-container-max: var(--bct-content-max);
+  width: min(var(--bct-container-max), calc(100% - var(--bct-page-gutter) - var(--bct-page-gutter)));
+  margin-inline: auto;
+}
+
+.bct-container--narrow {
+  --bct-container-max: 980px;
+}
+
+/* Shared primitive classes for later page-level composition. */
+.bct-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--bct-primary);
+  border-radius: var(--bct-radius-sm);
+  background: var(--bct-primary);
+  color: #fffdf8;
+  cursor: pointer;
+  font-size: var(--bct-text-sm);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.25;
+  text-decoration: none;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.bct-button:hover {
+  background: var(--bct-primary-hover);
+  border-color: var(--bct-primary-hover);
+  color: #fffdf8;
+}
+
+.bct-button:active {
+  background: var(--bct-primary-active);
+  border-color: var(--bct-primary-active);
+}
+
+.bct-button--secondary {
+  background: transparent;
+  color: var(--bct-primary);
+}
+
+.bct-button--secondary:hover {
+  background: var(--bct-surface-strong);
+  color: var(--bct-primary-hover);
+}
+
+.bct-section-label {
+  margin: 0;
+  color: var(--bct-accent);
+  font-size: var(--bct-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.bct-display-title {
+  font-family: var(--bct-font-serif);
+  font-size: var(--bct-text-xl);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.14;
+}
+
+.bct-image {
+  display: block;
+  width: 100%;
+  background: var(--bct-surface-strong);
+  object-fit: cover;
+}
+
+@media (max-width: 700px) {
+  :root {
+    --bct-page-gutter: 20px;
+    --bct-section-gap: clamp(52px, 16vw, 72px);
+  }
 }
