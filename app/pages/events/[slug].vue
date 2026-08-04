@@ -298,7 +298,7 @@ useHead(() => {
 </script>
 
 <template>
-  <main class="poster-page">
+  <main class="poster-page bct-container bct-container--narrow">
     <section class="detail-panel">
       <p v-if="error" class="state-copy">{{ $t('common.notFound') }}</p>
 
@@ -482,11 +482,7 @@ useHead(() => {
 </template>
 
 <style scoped>
-.poster-page {
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 28px 20px 72px;
-}
+.poster-page { padding-block: 28px 72px; }
 
 .detail-panel {
   padding: 24px;
@@ -714,10 +710,6 @@ useHead(() => {
 }
 
 @media (max-width: 700px) {
-  .poster-page {
-    padding-inline: 16px;
-  }
-
   .detail-panel,
   .event-sheet {
     padding: 18px;

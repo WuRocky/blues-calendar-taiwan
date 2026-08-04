@@ -29,15 +29,30 @@ useHead(() => ({ link: [...(buildLocalizedUrl(config.public.siteUrl, locale.valu
 <template>
   <main class="home-page">
     <HomeHero />
-    <WeeklyEventCalendar :events="weeklyCalendarEvents ?? []" :loading="weeklyCalendarStatus === 'pending'" :error="Boolean(weeklyCalendarError)" @refresh="refreshWeeklyCalendar" />
-    <HomeQuickExplore :items="quickExploreItems" />
-    <section v-if="highlightEvents.length" class="home-section">
-      <HomeSectionHeader :title="$t('home.highlights.title')" />
-      <div class="highlight-grid"><HomeHighlightCard v-for="event in highlightEvents" :key="event.id" :event-item="event" /></div>
-    </section>
+    <div class="home-content bct-container">
+      <WeeklyEventCalendar :events="weeklyCalendarEvents ?? []" :loading="weeklyCalendarStatus === 'pending'" :error="Boolean(weeklyCalendarError)" @refresh="refreshWeeklyCalendar" />
+      <section v-if="highlightEvents.length" class="home-section">
+        <HomeSectionHeader
+          :kicker="$t('home.recentKicker')"
+          :title="$t('home.recentTitle')"
+          :description="$t('home.recentDescription')"
+          :link-label="$t('home.viewAllEvents')"
+          :link-to="localePath('calendar')"
+        />
+        <div class="highlight-grid">
+          <HomeHighlightCard
+            v-for="(event, index) in highlightEvents"
+            :key="event.id"
+            :event-item="event"
+            :variant="index === 0 ? 'featured' : 'supporting'"
+          />
+        </div>
+      </section>
+      <HomeQuickExplore :items="quickExploreItems" />
+    </div>
   </main>
 </template>
 
 <style scoped>
-.home-page{display:grid;gap:var(--bct-section-gap);max-width:var(--bct-page-max);margin:0 auto;padding:28px var(--bct-page-gutter) 76px}.home-section{display:grid;gap:22px}.highlight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--bct-card-gap)}@media(max-width:700px){.home-page{padding-top:22px;padding-bottom:60px}.highlight-grid{grid-template-columns:1fr}}
+.home-page{display:grid}.home-content{display:grid;gap:var(--bct-section-gap);padding-block:28px 76px}.home-section{display:grid;gap:clamp(24px,4vw,44px)}.highlight-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.75fr);align-items:start;gap:var(--bct-card-gap)}@media(max-width:760px){.home-content{padding-block:22px 60px}.highlight-grid{grid-template-columns:1fr}}
 </style>

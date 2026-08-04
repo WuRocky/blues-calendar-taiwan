@@ -7,7 +7,7 @@ const reportUrl = computed(() => resolveTallyFormUrl(config.public.eventReportFo
 const instagramUrl = 'https://www.instagram.com/rocky_wide?igsh=MW1keTBld3ZpcXJpYg%3D%3D&utm_source=qr'
 </script>
 <template>
-  <footer class="footer">
+  <footer class="footer bct-container">
     <div class="footer-grid">
       <section><h2>{{ $t('site.title') }}</h2><p>{{ $t('footer.siteDescription') }}</p></section>
       <section><h2>{{ $t('footer.createdBy') }}</h2><p class="roles">{{ $t('footer.creatorRoles') }}</p><p>{{ $t('footer.creatorMessage') }}</p></section>
@@ -23,5 +23,5 @@ const instagramUrl = 'https://www.instagram.com/rocky_wide?igsh=MW1keTBld3ZpcXJp
   </footer>
 </template>
 <style scoped>
-.footer{max-width:var(--bct-page-max);margin:0 auto;padding:44px var(--bct-page-gutter) 24px;border-top:1px solid var(--bct-panel-border)}.footer-grid{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:clamp(28px,5vw,64px)}h2{margin:0 0 14px;color:var(--bct-cream-strong);font-size:1.05rem}p{margin:0;color:rgba(248,237,210,.68);line-height:1.7}.roles{margin-bottom:10px;color:var(--bct-gold);font-weight:700}nav{display:grid;gap:5px}nav a{display:flex;align-items:center;min-height:44px;color:var(--bct-cream-strong);text-decoration:none}nav a:hover,nav a:focus-visible{color:var(--bct-gold)}nav a:focus-visible{outline:2px solid var(--bct-gold);outline-offset:2px}.footer-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;margin-top:34px;padding-top:20px;border-top:1px solid rgba(200,155,70,.13)}.copyright,.photo-credit{font-size:.85rem}.photo-credit a{color:rgba(248,237,210,.82);text-underline-offset:3px}.photo-credit a:hover{color:var(--bct-gold)}.photo-credit a:focus-visible{outline:2px solid var(--bct-gold);outline-offset:3px}@media(max-width:760px){.footer-grid{grid-template-columns:1fr}.footer{padding-top:36px}.footer-meta{display:grid}}
+.footer{padding-block:var(--bct-section-gap) var(--bct-space-8);border-top:1px solid var(--bct-panel-border)}.footer-grid{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:clamp(28px,5vw,72px)}h2{margin:0 0 var(--bct-space-3);color:var(--bct-primary);font-family:var(--bct-font-serif);font-size:var(--bct-text-lg);font-weight:500;line-height:1.25}p{margin:0;color:var(--bct-text-muted);line-height:1.75}.roles{margin-bottom:var(--bct-space-3);color:var(--bct-accent);font-size:var(--bct-text-sm);font-weight:700}nav{display:grid;gap:2px}nav a{display:flex;align-items:center;min-height:38px;color:var(--bct-primary);font-size:var(--bct-text-sm);text-decoration:none}nav a:hover{color:var(--bct-accent);text-decoration:underline}.footer-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--bct-space-2) var(--bct-space-6);margin-top:clamp(32px,5vw,56px);padding-top:var(--bct-space-6);border-top:1px solid var(--bct-panel-border)}.copyright,.photo-credit{font-size:var(--bct-text-xs)}.photo-credit a{color:var(--bct-primary)}@media(max-width:760px){.footer-grid{grid-template-columns:1fr}.footer-meta{display:grid}}
 </style>
