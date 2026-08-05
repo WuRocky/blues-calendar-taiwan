@@ -52,53 +52,73 @@ function makeEvent(id, overrides = {}) {
   }
 }
 
-const now = dayjs.tz('2026-08-01 12:00', 'Asia/Taipei')
+const now = dayjs.tz('2026-08-05 12:00', 'Asia/Taipei')
 const fixtures = [
-  makeEvent('monday-ended'),
-  makeEvent('wednesday-ended', { startTime: '2026-07-29T11:00:00.000Z', endTime: '2026-07-29T13:00:00.000Z' }),
-  makeEvent('today', { startTime: '2026-08-01T02:00:00.000Z', endTime: '2026-08-01T06:00:00.000Z', timeStatus: 'ongoing' }),
-  makeEvent('future', { startTime: '2026-08-02T02:00:00.000Z', endTime: '2026-08-02T04:00:00.000Z', timeStatus: 'upcoming' }),
-  makeEvent('last-week', { startTime: '2026-07-25T02:00:00.000Z', endTime: '2026-07-25T04:00:00.000Z' }),
-  makeEvent('next-week', { startTime: '2026-08-03T02:00:00.000Z', endTime: '2026-08-03T04:00:00.000Z', timeStatus: 'upcoming' }),
-  makeEvent('previous-to-current-week', { startTime: '2026-07-26T12:00:00.000Z', endTime: '2026-07-27T04:00:00.000Z' }),
-  makeEvent('current-to-next-week', { startTime: '2026-08-02T12:00:00.000Z', endTime: '2026-08-03T04:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent('monday-ongoing', { startTime: '2026-08-03T11:00:00.000Z', endTime: '2026-08-03T13:00:00.000Z', timeStatus: 'ongoing' }),
+  makeEvent('wednesday-ongoing', { startTime: '2026-08-05T11:00:00.000Z', endTime: '2026-08-05T13:00:00.000Z', timeStatus: 'ongoing' }),
+  makeEvent('friday-upcoming', { startTime: '2026-08-07T02:00:00.000Z', endTime: '2026-08-07T06:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent('aug-8-featured', { slug: 'taplife-saturday-social-2026-08-08', name: 'TapLife Blues Social', startTime: '2026-08-08T12:00:00.000Z', endTime: '2026-08-08T15:00:00.000Z', timeStatus: 'upcoming', eventType: 'social' }),
+  makeEvent('aug-8-date-only', { slug: 'taplife-saturday-social-date-only-2026-08-08', startTime: '2026-08-07T16:00:00.000Z', endTime: null, startTimeIsDateOnly: true, timeStatus: 'upcoming', eventType: 'social' }),
+  makeEvent('aug-8-offset', { slug: 'taipei-timezone-2026-08-08', startTime: '2026-08-08T00:30:00.000Z', endTime: '2026-08-08T02:30:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent('aug-8-hidden-1', { startTime: '2026-08-08T04:00:00.000Z', endTime: '2026-08-08T05:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent('aug-8-hidden-2', { startTime: '2026-08-08T06:00:00.000Z', endTime: '2026-08-08T07:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent('pending-hidden', { status: 'Pending', published: false, startTime: '2026-08-08T08:00:00.000Z', endTime: '2026-08-08T09:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent('invalid-slug-hidden', { slug: 'TapLife-saturday-social-2026-08-08', startTime: '2026-08-08T10:00:00.000Z', endTime: '2026-08-08T11:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent('invalid-end-before-start', { startTime: '2026-08-08T12:00:00.000Z', endTime: '2026-08-08T11:00:00.000Z', timeStatus: 'invalid' }),
+  makeEvent('next-week', { startTime: '2026-08-10T02:00:00.000Z', endTime: '2026-08-10T04:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent('last-week', { startTime: '2026-08-02T02:00:00.000Z', endTime: '2026-08-02T04:00:00.000Z', timeStatus: 'ended' }),
+  makeEvent('previous-to-current-week', { startTime: '2026-08-02T12:00:00.000Z', endTime: '2026-08-03T04:00:00.000Z', timeStatus: 'ongoing' }),
+  makeEvent('current-to-next-week', { startTime: '2026-08-09T12:00:00.000Z', endTime: '2026-08-10T04:00:00.000Z', timeStatus: 'upcoming' }),
   makeEvent('invalid', { timeStatus: 'invalid' }),
   makeEvent('unscheduled-class', { eventType: 'class', recurring: true, recurringText: 'Every Monday', startTime: null, endTime: null, timeStatus: 'unscheduled' }),
-  makeEvent('cancelled', { eventStatus: 'cancelled' }),
-  makeEvent('postponed', { eventStatus: 'postponed', startTime: '2026-08-02T03:00:00.000Z', endTime: null, timeStatus: 'upcoming' })
+  makeEvent('cancelled', { eventStatus: 'cancelled', startTime: '2026-08-08T13:00:00.000Z', endTime: '2026-08-08T15:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent('postponed', { eventStatus: 'postponed', startTime: '2026-08-09T03:00:00.000Z', endTime: null, timeStatus: 'upcoming' })
 ]
-const allDatedCalendarEvents = selectDatedHomeCalendarEvents(fixtures)
+const publicFixtures = fixtures.filter(event => event.published && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(event.slug))
+const allDatedCalendarEvents = selectDatedHomeCalendarEvents(publicFixtures)
 const weeklyCalendarEvents = selectWeeklyCalendarEvents(allDatedCalendarEvents, now)
 const days = buildHomeWeek(weeklyCalendarEvents, now)
 const idsFor = key => days.find(day => day.key === key)?.events.map(event => event.id) ?? []
 const allIds = days.flatMap(day => day.events.map(event => event.id))
+const saturdayEvents = idsFor('2026-08-08')
 
-assert.deepEqual(days.map(day => day.key), ['2026-07-27', '2026-07-28', '2026-07-29', '2026-07-30', '2026-07-31', '2026-08-01', '2026-08-02'])
-assert.ok(idsFor('2026-07-27').includes('monday-ended'))
-assert.ok(idsFor('2026-07-29').includes('wednesday-ended'))
-assert.ok(idsFor('2026-08-01').includes('today'))
-assert.ok(idsFor('2026-08-02').includes('future'))
-assert.ok(idsFor('2026-07-27').includes('previous-to-current-week'))
-assert.ok(idsFor('2026-08-02').includes('current-to-next-week'))
-assert.ok(idsFor('2026-07-27').includes('cancelled'))
-assert.ok(idsFor('2026-08-02').includes('postponed'))
+assert.deepEqual(days.map(day => day.key), ['2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07', '2026-08-08', '2026-08-09'])
+assert.ok(idsFor('2026-08-03').includes('monday-ongoing'))
+assert.ok(idsFor('2026-08-05').includes('wednesday-ongoing'))
+assert.ok(idsFor('2026-08-07').includes('friday-upcoming'))
+assert.ok(idsFor('2026-08-03').includes('previous-to-current-week'))
+assert.ok(idsFor('2026-08-09').includes('current-to-next-week'))
+assert.ok(saturdayEvents.includes('aug-8-featured'))
+assert.ok(saturdayEvents.includes('aug-8-date-only'))
+assert.ok(saturdayEvents.includes('aug-8-offset'))
+assert.ok(saturdayEvents.includes('cancelled'))
+assert.equal(days.find(day => day.key === '2026-08-08')?.key, '2026-08-08')
 assert.equal(weeklyCalendarEvents.find(event => event.id === 'cancelled')?.eventStatus, 'cancelled')
 assert.equal(weeklyCalendarEvents.find(event => event.id === 'postponed')?.eventStatus, 'postponed')
 assert.ok(!allIds.includes('last-week'))
 assert.ok(!allIds.includes('next-week'))
 assert.ok(!allIds.includes('invalid'))
+assert.ok(!allIds.includes('invalid-end-before-start'))
 assert.ok(!allIds.includes('unscheduled-class'))
+assert.ok(!allIds.includes('pending-hidden'))
+assert.ok(!allIds.includes('invalid-slug-hidden'))
 assert.ok(allDatedCalendarEvents.some(event => event.id === 'last-week'))
 assert.ok(allDatedCalendarEvents.some(event => event.id === 'next-week'))
 assert.ok(!allDatedCalendarEvents.some(event => event.id === 'invalid'))
+assert.ok(!allDatedCalendarEvents.some(event => event.id === 'invalid-end-before-start'))
 assert.ok(!allDatedCalendarEvents.some(event => event.id === 'unscheduled-class'))
+assert.ok(!allDatedCalendarEvents.some(event => event.id === 'pending-hidden'))
+assert.ok(!allDatedCalendarEvents.some(event => event.id === 'invalid-slug-hidden'))
+assert.ok(saturdayEvents.length > 3)
+assert.ok(saturdayEvents.includes('aug-8-hidden-1'))
+assert.ok(saturdayEvents.includes('aug-8-hidden-2'))
 
 const firstKey = offset => buildHomeWeek(allDatedCalendarEvents, now.add(offset, 'week'))[0]?.key
-assert.equal(firstKey(0), '2026-07-27')
-assert.equal(firstKey(-1), '2026-07-20')
-assert.equal(firstKey(-2), '2026-07-13')
-assert.equal(firstKey(1), '2026-08-03')
-assert.equal(firstKey(2), '2026-08-10')
+assert.equal(firstKey(0), '2026-08-03')
+assert.equal(firstKey(-1), '2026-07-27')
+assert.equal(firstKey(-2), '2026-07-20')
+assert.equal(firstKey(1), '2026-08-10')
+assert.equal(firstKey(2), '2026-08-17')
 assert.equal(buildHomeWeek(allDatedCalendarEvents, now.subtract(1, 'week')).flatMap(day => day.events).some(event => event.id === 'last-week'), true)
 assert.equal(buildHomeWeek(allDatedCalendarEvents, now.add(1, 'week')).flatMap(day => day.events).some(event => event.id === 'next-week'), true)
 assert.equal(buildHomeWeek(allDatedCalendarEvents, now.add(8, 'week')).flatMap(day => day.events).length, 0)

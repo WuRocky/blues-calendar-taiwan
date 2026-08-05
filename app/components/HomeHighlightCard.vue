@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { getEventDisplayStatus, getEventDisplayStatusLabel } from '~~/lib/event-status'
+import { getEventFallbackImage, getEventImage, imageAssets } from '~~/lib/image-assets'
 import type { EventItem } from '~~/types/event'
 
 dayjs.extend(utc)
@@ -14,11 +15,24 @@ const props = defineProps<{
 }>()
 
 const localePath = useLocalePath()
-const imageFailed = ref(false)
+const { t } = useI18n()
+const imageFailureStage = ref(0)
+const image = computed(() => {
+  const primary = getEventImage(props.eventItem)
+  if (!primary.isFallback && imageFailureStage.value === 0) return primary
+  if (primary.isFallback) return imageFailureStage.value === 0 ? primary : { ...imageAssets.communityFallback, isFallback: true }
+  if (imageFailureStage.value === 1) return { ...getEventFallbackImage(props.eventItem.eventType, props.eventItem.slug || props.eventItem.id), isFallback: true }
+  return { ...imageAssets.communityFallback, isFallback: true }
+})
+const imageAlt = computed(() => image.value.isFallback ? t((image.value as unknown as { altKey: string }).altKey) : props.eventItem.name)
 
 watch(() => props.eventItem.coverImageUrl, () => {
-  imageFailed.value = false
+  imageFailureStage.value = 0
 })
+
+function handleImageError() {
+  imageFailureStage.value += 1
+}
 
 function getStatusLabel(eventItem: EventItem) {
   return getEventDisplayStatusLabel(getEventDisplayStatus(eventItem))
@@ -66,12 +80,14 @@ function getDateLine(eventItem: EventItem) {
   >
     <div class="highlight-media">
       <img
-        v-if="eventItem.coverImageUrl && !imageFailed"
-        :src="eventItem.coverImageUrl"
-        :alt="eventItem.name"
+        v-if="imageFailureStage < 3"
+        :src="image.src"
+        :alt="imageAlt"
         class="highlight-image"
+        width="1600"
+        height="1000"
         loading="lazy"
-        @error="imageFailed = true"
+        @error="handleImageError"
       >
       <div v-else class="highlight-placeholder" aria-hidden="true" />
     </div>

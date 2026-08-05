@@ -47,6 +47,7 @@
   },
   "eventStatus": { "cancelled": "취소됨", "postponed": "연기됨", "ongoing": "진행 중", "ended": "종료됨" },
   "footer": { "siteDescription": "대만 Blues 클래스, Workshop, Social 및 이벤트 정보 플랫폼입니다.", "createdBy": "Rocky 제작 및 운영", "creatorRoles": "Blues Dancer · Teacher", "creatorMessage": "대만 Blues 커뮤니티를 위해 모든 수업과 Social, 만남을 더 쉽게 찾을 수 있도록 만들었습니다.", "community": "커뮤니티 참여", "submitEvent": "이벤트 등록", "reportEvent": "이벤트 정보 신고", "instagramAria": "새 탭에서 Rocky의 Instagram 열기", "email": "Rocky에게 연락", "copyright": "© {year} Blues Calendar Taiwan", "heroPhotoPrefix": "히어로 사진: " },
+  "images": { "fallbackAlt": "Blues 커뮤니티 분위기", "classAlt": "학습에 어울리는 차분한 커뮤니티 분위기", "eventAlt": "타이베이 도시와 대형 이벤트 분위기", "workshopAlt": "댄스 Workshop 분위기", "socialAlt": "Blues 커뮤니티 모임", "otherAlt": "대만 도시 분위기", "taipeiAlt": "타이베이 도시와 커뮤니티 분위기", "communityAlt": "대만 Blues 커뮤니티 분위기" },
   "category": {
     "class": "정규 수업",
     "classLabel": "Regular Classes",
@@ -63,6 +64,7 @@
   },
   "event": {
     "viewDetails": "자세히 보기",
+    "coverImageAlt": "{name} 이벤트 커버",
     "register": "등록 링크",
     "registerAction": "등록하러 가기",
     "date": "날짜",

@@ -47,6 +47,7 @@
   },
   "eventStatus": { "cancelled": "已取消", "postponed": "延期", "ongoing": "進行中", "ended": "已結束" },
   "footer": { "siteDescription": "台灣 Blues 課程、Workshop、Social 與活動資訊平台。", "createdBy": "由 Rocky 製作與維護", "creatorRoles": "Blues Dancer · Teacher", "creatorMessage": "為台灣 Blues 社群打造，讓每一堂課、每一場 Social 與每一次相遇更容易被找到。", "community": "參與社群", "submitEvent": "投稿活動", "reportEvent": "回報活動資訊", "instagramAria": "在新分頁開啟 Rocky 的 Instagram", "email": "聯絡 Rocky", "copyright": "© {year} Blues Calendar Taiwan", "heroPhotoPrefix": "首頁照片：" },
+  "images": { "fallbackAlt": "Blues 社群氛圍照片", "classAlt": "適合學習的安靜社群氛圍照片", "eventAlt": "台北城市與大型活動氛圍照片", "workshopAlt": "舞蹈 Workshop 氛圍照片", "socialAlt": "Blues 社群相聚氛圍照片", "otherAlt": "台灣城市氛圍照片", "taipeiAlt": "台北城市與社群氛圍照片", "communityAlt": "台灣 Blues 社群氛圍照片" },
   "category": {
     "class": "常態課程",
     "classLabel": "Regular Classes",
@@ -63,6 +64,7 @@
   },
   "event": {
     "viewDetails": "查看詳情",
+    "coverImageAlt": "{name} 活動封面",
     "register": "報名連結",
     "registerAction": "前往報名",
     "date": "日期",

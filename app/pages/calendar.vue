@@ -7,6 +7,7 @@ type EventTypeFilter = 'all' | 'class' | 'workshop' | 'social' | 'event'
 type SpecificEventTypeFilter = Exclude<EventTypeFilter, 'all'>
 type FilterOption = { value: EventTypeFilter, label: string }
 type EventSection = { events: EventItem[], title: string | null }
+const eventTypeFilters = ['all', 'social', 'class', 'workshop', 'event'] as const
 
 const { t, locale } = useI18n()
 const config = useRuntimeConfig()
@@ -16,13 +17,10 @@ const { data: events, error, status, refresh } = await useFetch<EventItem[]>('/a
   default: () => []
 })
 
-const filterOptions = computed<FilterOption[]>(() => [
-  { value: 'all', label: t('filters.all') },
-  { value: 'class', label: t('filters.class') },
-  { value: 'workshop', label: t('filters.workshop') },
-  { value: 'social', label: t('filters.social') },
-  { value: 'event', label: t('filters.event') }
-])
+const filterOptions = computed<FilterOption[]>(() => eventTypeFilters.map(value => ({
+  value,
+  label: t(`filters.${value}`)
+})))
 
 function mapFilterType(eventType: string): SpecificEventTypeFilter {
   const normalized = eventType.toLowerCase()
@@ -57,8 +55,8 @@ const filteredEvents = computed(() => {
 const eventSections = computed<EventSection[]>(() => {
   if (activeFilter.value === 'all') {
     return [
-      { title: t('calendar.regularClasses'), events: regularClassEvents.value },
-      { title: t('calendar.upcomingEvents'), events: upcomingAndOngoingEvents.value }
+      { title: t('calendar.upcomingEvents'), events: upcomingAndOngoingEvents.value },
+      { title: t('calendar.regularClasses'), events: regularClassEvents.value }
     ].filter(section => section.events.length)
   }
 
