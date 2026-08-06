@@ -398,36 +398,24 @@ const getCachedPublishedEventSource = defineCachedFunction(async (databaseId: st
 })
 
 export async function getPublishedEvents() {
-  const config = useRuntimeConfig()
+  const events = await getPublishedEventItems()
 
-  if (!config.notionEventsDatabaseId) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Missing NOTION_EVENTS_DATABASE_ID'
-    })
-  }
-
-  const publishedSource = await getCachedPublishedEventSource(config.notionEventsDatabaseId)
-
-  const events = publishedSource.flatMap(({ event: mappedEvent, timeIssues }) => {
-    const event = createEventItemWithTimeStatus(mappedEvent, timeIssues)
+  return sortEventsByDisplayPriority(events.flatMap((event) => {
     const { reason } = evaluateEventTime(event)
 
     if (!shouldDisplayPublicEvent(event)) {
       if (event.timeStatus === 'invalid') {
-        warnInvalidPublicEventTime(event, timeIssues[0] || reason || 'invalid event time')
+        warnInvalidPublicEventTime(event, reason || 'invalid event time')
       }
 
       return []
     }
 
     return [event]
-  })
-
-  return sortEventsByDisplayPriority(events)
+  }))
 }
 
-export async function getHomeCalendarEvents() {
+export async function getPublishedEventItems() {
   const config = useRuntimeConfig()
 
   if (!config.notionEventsDatabaseId) {
@@ -438,9 +426,13 @@ export async function getHomeCalendarEvents() {
   }
 
   const publishedSource = await getCachedPublishedEventSource(config.notionEventsDatabaseId)
-  const mappedEvents = publishedSource.map(({ event, timeIssues }) =>
+  return publishedSource.map(({ event, timeIssues }) =>
     createEventItemWithTimeStatus(event, timeIssues)
   )
+}
+
+export async function getHomeCalendarEvents() {
+  const mappedEvents = await getPublishedEventItems()
 
   return sortEventsByDisplayPriority(selectDatedHomeCalendarEvents(mappedEvents))
 }
