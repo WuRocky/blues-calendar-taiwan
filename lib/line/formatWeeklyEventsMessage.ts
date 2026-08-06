@@ -1,7 +1,6 @@
 import dayjs, { type Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
-import { buildEventDetailUrl, resolveSiteUrl } from '~~/lib/event-calendar'
 import { TAIPEI_TIMEZONE } from '~~/lib/event-time'
 import type { EventItem } from '~~/types/event'
 
@@ -29,6 +28,21 @@ function formatWeekRangeLine(start: Dayjs, end: Dayjs) {
   return `${start.format('M/D')}（${getWeekdayLabel(start)}）－${end.format('M/D')}（${getWeekdayLabel(end)}）`
 }
 
+function getValidHttpUrl(value: string) {
+  const normalized = value.trim()
+
+  if (!normalized) {
+    return null
+  }
+
+  try {
+    const url = new URL(normalized)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
+  } catch {
+    return null
+  }
+}
+
 function formatEventStartLine(event: Pick<EventItem, 'startTime'>) {
   if (!event.startTime) {
     return ''
@@ -39,12 +53,37 @@ function formatEventStartLine(event: Pick<EventItem, 'startTime'>) {
   return event.startTime ? `${base}${event.startTime ? ` ${start.format('HH:mm')}` : ''}` : base
 }
 
-function formatEventBlock(event: EventItem, siteUrl: string) {
+function formatVenueLines(event: Pick<EventItem, 'venueName' | 'venueUrl'>) {
+  const venueName = event.venueName.trim()
+  const venueUrl = getValidHttpUrl(event.venueUrl)
+
+  if (venueName && venueUrl) {
+    return [`📍 ${venueName}`, `地點：${venueUrl}`]
+  }
+
+  if (venueName) {
+    return [`📍 ${venueName}`]
+  }
+
+  if (venueUrl) {
+    return ['📍 地點', venueUrl]
+  }
+
+  return []
+}
+
+function formatRegistrationLines(event: Pick<EventItem, 'registrationUrl'>) {
+  const registrationUrl = getValidHttpUrl(event.registrationUrl)
+
+  return registrationUrl ? ['🔗 活動連結', registrationUrl] : []
+}
+
+function formatEventBlock(event: EventItem) {
   const lines = [
     formatEventStartLine(event),
     `【${getEventTypeLabel(event.eventType)}】${event.name}`,
-    event.venueName ? `📍 ${event.venueName}` : '',
-    event.slug ? `🔗 ${buildEventDetailUrl(siteUrl, event.slug)}` : ''
+    ...formatVenueLines(event),
+    ...formatRegistrationLines(event)
   ].filter(Boolean)
 
   return lines.join('\n')
@@ -52,7 +91,6 @@ function formatEventBlock(event: EventItem, siteUrl: string) {
 
 export interface FormatWeeklyEventsMessageParams {
   events: readonly EventItem[]
-  siteUrl: string
   weekEnd: Dayjs
   weekStart: Dayjs
 }
@@ -60,11 +98,8 @@ export interface FormatWeeklyEventsMessageParams {
 export function formatWeeklyEventsMessage({
   weekStart,
   weekEnd,
-  events,
-  siteUrl
+  events
 }: FormatWeeklyEventsMessageParams) {
-  const resolvedSiteUrl = resolveSiteUrl(siteUrl)
-
   if (!events.length) {
     return '本週暫無 Blues 活動 💙'
   }
@@ -74,23 +109,17 @@ export function formatWeeklyEventsMessage({
     formatWeekRangeLine(weekStart.tz(TAIPEI_TIMEZONE), weekEnd.tz(TAIPEI_TIMEZONE))
   ].join('\n')
 
-  const footer = resolvedSiteUrl ? `完整活動：\n${resolvedSiteUrl}/events` : ''
-  const blocks = events.map(event => formatEventBlock(event, siteUrl)).filter(Boolean)
+  const blocks = events.map(event => formatEventBlock(event)).filter(Boolean)
   const messageParts = [header]
-  const reservedFooterLength = footer ? footer.length + 2 : 0
 
   for (const block of blocks) {
     const candidate = [...messageParts, block].join('\n\n')
 
-    if (candidate.length + reservedFooterLength > MAX_LINE_TEXT_LENGTH) {
+    if (candidate.length > MAX_LINE_TEXT_LENGTH) {
       break
     }
 
     messageParts.push(block)
-  }
-
-  if (footer) {
-    messageParts.push(footer)
   }
 
   return messageParts.join('\n\n')

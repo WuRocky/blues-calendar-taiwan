@@ -31,8 +31,7 @@ export default defineEventHandler(async (event) => {
     const message = formatWeeklyEventsMessage({
       weekStart: weekRange.start,
       weekEnd: weekRange.end,
-      events: weeklyEvents,
-      siteUrl: config.public.siteUrl
+      events: weeklyEvents
     })
 
     await pushLineTextMessage({
