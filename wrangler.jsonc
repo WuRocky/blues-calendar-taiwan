@@ -1,3 +1,6 @@
 {
-  "keep_vars": true,"name": "blues-calendar-taiwan"
+  "keep_vars": true,
+  "triggers": {
+    "crons": ["0 2 * * *"]
+  }
 }
