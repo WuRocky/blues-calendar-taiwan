@@ -1,7 +1,4 @@
-import { getWeeklyEvents } from '~~/lib/events/getWeeklyEvents'
-import { getTaipeiWeekRange } from '~~/lib/events/weeklyEvents'
-import { formatWeeklyEventsMessage } from '~~/lib/line/formatWeeklyEventsMessage'
-import { pushLineTextMessage } from '~~/lib/line/pushLineMessage'
+import { sendWeeklyLinePush } from '~~/lib/line/sendWeeklyLinePush'
 import { verifyJobAuthorization } from '~~/lib/line/verifyJobAuthorization'
 
 export default defineEventHandler(async (event) => {
@@ -26,24 +23,15 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const weeklyEvents = await getWeeklyEvents()
-    const weekRange = getTaipeiWeekRange()
-    const message = formatWeeklyEventsMessage({
-      weekStart: weekRange.start,
-      weekEnd: weekRange.end,
-      events: weeklyEvents
-    })
-
-    await pushLineTextMessage({
-      channelAccessToken: config.lineChannelAccessToken,
-      targetId: config.lineGroupId,
-      text: message
+    const result = await sendWeeklyLinePush({
+      lineChannelAccessToken: config.lineChannelAccessToken,
+      lineGroupId: config.lineGroupId
     })
 
     return {
       success: true,
       message: 'Weekly LINE push sent',
-      eventCount: weeklyEvents.length
+      eventCount: result.eventCount
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
