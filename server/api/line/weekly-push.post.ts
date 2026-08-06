@@ -1,7 +1,8 @@
+import { getWeeklyEvents } from '~~/lib/events/getWeeklyEvents'
+import { getTaipeiWeekRange } from '~~/lib/events/weeklyEvents'
+import { formatWeeklyEventsMessage } from '~~/lib/line/formatWeeklyEventsMessage'
 import { pushLineTextMessage } from '~~/lib/line/pushLineMessage'
 import { verifyJobAuthorization } from '~~/lib/line/verifyJobAuthorization'
-
-const TEST_PUSH_MESSAGE = 'LINE Bot 主動推播測試成功 💙'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
@@ -25,21 +26,31 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    const weeklyEvents = await getWeeklyEvents()
+    const weekRange = getTaipeiWeekRange()
+    const message = formatWeeklyEventsMessage({
+      weekStart: weekRange.start,
+      weekEnd: weekRange.end,
+      events: weeklyEvents,
+      siteUrl: config.public.siteUrl
+    })
+
     await pushLineTextMessage({
       channelAccessToken: config.lineChannelAccessToken,
       targetId: config.lineGroupId,
-      text: TEST_PUSH_MESSAGE
+      text: message
     })
 
     return {
       success: true,
-      message: 'LINE test push sent'
+      message: 'Weekly LINE push sent',
+      eventCount: weeklyEvents.length
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
 
     if (message.startsWith('LINE push failed')) {
-      console.error('LINE push request failed:', message)
+      console.error('LINE weekly push request failed:', message)
 
       throw createError({
         statusCode: 502,
@@ -47,11 +58,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    console.error('Unexpected LINE test push error:', message)
+    console.error('Unexpected LINE weekly push error:', message)
 
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to process LINE test push request'
+      statusMessage: 'Failed to process weekly LINE push request'
     })
   }
 })
