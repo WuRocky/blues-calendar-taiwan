@@ -1,3 +1,5 @@
+import { authorizeLineWebhook } from '~~/lib/line/verifyLineSignature'
+
 interface LineWebhookSource {
   type: 'user' | 'group' | 'room'
   userId?: string
@@ -17,24 +19,45 @@ interface LineWebhookBody {
 
 export default defineEventHandler(async (event) => {
   try {
-    const body = await readBody<LineWebhookBody>(event)
+    const signature = getHeader(event, 'x-line-signature')
+    const rawBody = (await readRawBody(event, 'utf8')) ?? ''
+    const channelSecret = useRuntimeConfig(event).lineChannelSecret
+
+    const isAuthorized = rawBody ? await authorizeLineWebhook({
+      channelSecret,
+      rawBody,
+      signature
+    }) : false
+
+    if (!isAuthorized) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized'
+      })
+    }
+
+    const parsedBody = JSON.parse(rawBody) as LineWebhookBody
+    const body = typeof parsedBody === 'object' && parsedBody !== null ? parsedBody : {}
 
     for (const lineEvent of body?.events ?? []) {
-      console.log('LINE webhook event:', lineEvent)
+      console.log('LINE webhook event:', {
+        type: lineEvent.type,
+        sourceType: lineEvent.source?.type ?? null
+      })
 
       if (lineEvent.source?.type === 'group' && lineEvent.source.groupId) {
         console.log('LINE group ID:', lineEvent.source.groupId)
       }
     }
 
-    // TODO:
-    // 正式版本需使用 LINE_CHANNEL_SECRET
-    // 驗證 x-line-signature，確認請求來自 LINE。
-
     return {
       success: true
     }
   } catch (error) {
+    if (isError(error) && error.statusCode === 401) {
+      throw error
+    }
+
     console.error('Failed to handle LINE webhook:', error)
 
     throw createError({
