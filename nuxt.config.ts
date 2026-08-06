@@ -9,9 +9,10 @@ export default defineNuxtConfig({
   runtimeConfig: {
     notionToken: '',
     notionEventsDatabaseId: '',
-    lineGroupId: process.env.LINE_GROUP_ID || '',
-    lineChannelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || '',
-    lineJobSecret: process.env.LINE_JOB_SECRET || '',
+    lineGroupId: '',
+    lineChannelAccessToken: '',
+    lineChannelSecret: '',
+    lineJobSecret: '',
     public: {
       siteUrl: 'http://localhost:3000',
       eventSubmissionFormUrl: '',
