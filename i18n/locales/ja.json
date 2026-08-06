@@ -47,6 +47,7 @@
   },
   "eventStatus": { "cancelled": "中止", "postponed": "延期", "ongoing": "開催中", "ended": "終了" },
   "footer": { "siteDescription": "台湾の Blues クラス、Workshop、Social、イベント情報プラットフォーム。", "createdBy": "Rocky が制作・運営", "creatorRoles": "Blues Dancer · Teacher", "creatorMessage": "台湾の Blues コミュニティのために、クラスや Social、出会いをもっと見つけやすく。", "community": "コミュニティに参加", "submitEvent": "イベントを投稿", "reportEvent": "イベント情報を報告", "instagramAria": "Rocky の Instagram を新しいタブで開く", "email": "Rocky に連絡", "copyright": "© {year} Blues Calendar Taiwan", "heroPhotoPrefix": "ヒーロー写真：" },
+  "images": { "fallbackAlt": "Blues コミュニティの雰囲気", "classAlt": "学びに適した落ち着いたコミュニティの雰囲気", "eventAlt": "台北の街と大きなイベントの雰囲気", "workshopAlt": "ダンス Workshop の雰囲気", "socialAlt": "Blues コミュニティの集まり", "otherAlt": "台湾の街の雰囲気", "taipeiAlt": "台北の街とコミュニティの雰囲気", "communityAlt": "台湾 Blues コミュニティの雰囲気" },
   "category": {
     "class": "通常クラス",
     "classLabel": "Regular Classes",
@@ -63,6 +64,7 @@
   },
   "event": {
     "viewDetails": "詳細を見る",
+    "coverImageAlt": "{name} のイベントカバー",
     "register": "申込リンク",
     "registerAction": "申込ページへ",
     "date": "日付",

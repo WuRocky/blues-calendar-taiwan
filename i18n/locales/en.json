@@ -47,6 +47,7 @@
   },
   "eventStatus": { "cancelled": "Cancelled", "postponed": "Postponed", "ongoing": "Ongoing", "ended": "Ended" },
   "footer": { "siteDescription": "A platform for Blues classes, workshops, socials, and events in Taiwan.", "createdBy": "Created and maintained by Rocky", "creatorRoles": "Blues Dancer · Teacher", "creatorMessage": "Built for Taiwan's Blues community, making every class, social, and encounter easier to find.", "community": "Join the Community", "submitEvent": "Submit an event", "reportEvent": "Report event information", "instagramAria": "Open Rocky's Instagram in a new tab", "email": "Email Rocky", "copyright": "© {year} Blues Calendar Taiwan", "heroPhotoPrefix": "Hero photo by " },
+  "images": { "fallbackAlt": "Blues community atmosphere", "classAlt": "A calm community atmosphere for learning", "eventAlt": "Taipei city and large event atmosphere", "workshopAlt": "Dance workshop atmosphere", "socialAlt": "Blues community gathering", "otherAlt": "Taiwan city atmosphere", "taipeiAlt": "Taipei city and community atmosphere", "communityAlt": "Taiwan Blues community atmosphere" },
   "category": {
     "class": "Regular Classes",
     "classLabel": "Regular Classes",
@@ -63,6 +64,7 @@
   },
   "event": {
     "viewDetails": "View Details",
+    "coverImageAlt": "{name} event cover",
     "register": "Registration Link",
     "registerAction": "Register",
     "date": "Date",

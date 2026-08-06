@@ -4,6 +4,7 @@ import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { buildGoogleCalendarUrl, canAddEventToCalendar } from '~~/lib/event-calendar'
 import { buildEventReportUrl, resolveTallyFormUrl } from '~~/lib/event-report'
+import { getEventFallbackImage, getEventImage, imageAssets } from '~~/lib/image-assets'
 import { buildEventJsonLd, buildEventSeoDescription, buildEventSeoTitle, buildLocaleAlternates, buildLocalizedEventUrl, getOgLocale, resolveSeoImage, SITE_NAME } from '~~/lib/event-seo'
 import { buildEventShareText, buildEventShareTitle, buildEventShareUrl, buildLineShareUrl } from '~~/lib/event-sharing'
 import { getEventDisplayStatus, getEventDisplayStatusLabel, getEventRegistrationNotice, isEventRegistrationUnavailable, isEventStatusMuted } from '~~/lib/event-status'
@@ -21,6 +22,24 @@ const shareFeedbackIsError = ref(false)
 let shareFeedbackTimeoutId: ReturnType<typeof setTimeout> | null = null
 
 const { data: eventItem, error } = await useFetch<EventItem>(`/api/events/${route.params.slug}`)
+const eventImageFailureStage = ref(0)
+const eventImage = computed(() => {
+  if (!eventItem.value) return null
+  const primary = getEventImage(eventItem.value)
+  if (!primary.isFallback && eventImageFailureStage.value === 0) return primary
+  if (primary.isFallback) return eventImageFailureStage.value === 0 ? primary : { ...imageAssets.communityFallback, isFallback: true }
+  if (eventImageFailureStage.value === 1) return { ...getEventFallbackImage(eventItem.value.eventType, eventItem.value.slug || eventItem.value.id), isFallback: true }
+  return { ...imageAssets.communityFallback, isFallback: true }
+})
+const eventImageAlt = computed(() => eventImage.value?.isFallback ? t((eventImage.value as unknown as { altKey: string }).altKey) : eventItem.value?.name || '')
+
+watch(() => eventItem.value?.coverImageUrl, () => {
+  eventImageFailureStage.value = 0
+})
+
+function handleEventImageError() {
+  eventImageFailureStage.value += 1
+}
 
 function formatDate(date: string | null) {
   if (!date) {
@@ -417,9 +436,9 @@ useHead(() => {
           <p class="price-copy">{{ eventItem.price || $t('common.noPrice') }}</p>
         </div>
 
-        <div v-if="eventItem.coverImageUrl" class="content-block">
+        <div class="content-block">
           <h2 class="section-title">{{ $t('event.coverImage') }}</h2>
-          <img class="cover-image" :src="eventItem.coverImageUrl" :alt="eventItem.name">
+          <img v-if="eventImage && eventImageFailureStage < 3" class="cover-image" :src="eventImage.src" :alt="eventImageAlt" width="1600" height="1000" loading="lazy" @error="handleEventImageError">
         </div>
 
         <div v-if="eventItem.description" class="content-block">
@@ -637,9 +656,12 @@ useHead(() => {
 
 .cover-image {
   display: block;
+  width: 100%;
   max-width: 100%;
+  aspect-ratio: 16 / 10;
   border-radius: 12px;
   border: 1px solid rgba(92, 67, 38, 0.16);
+  object-fit: cover;
 }
 
 .status-notice {

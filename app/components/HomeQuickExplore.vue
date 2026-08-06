@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { getCategoryImage } from '~~/lib/image-assets'
+
 defineProps<{
   items: Array<{
     key: string
@@ -23,7 +25,7 @@ defineProps<{
         role="listitem"
       >
         <span class="explore-media" aria-hidden="true">
-          <img src="/images/home-hero-taipei.webp" width="2000" height="3000" alt="">
+          <img :src="getCategoryImage(item.key)" width="1600" height="1067" alt="">
         </span>
         <span class="explore-content">
           <strong>{{ item.label }}</strong>

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import jitiFactory from 'jiti'
 
 const projectRoot = new URL('../', import.meta.url).pathname
@@ -15,6 +16,7 @@ const {
   shouldDisplayClassCalendarEvent,
   sortRegularClasses
 } = jiti('../lib/event-time.ts')
+const calendarPage = fs.readFileSync(new URL('../app/pages/calendar.vue', import.meta.url), 'utf8')
 
 function makeEvent(overrides = {}) {
   return {
@@ -170,5 +172,7 @@ const sortedRegularClasses = sortRegularClasses([
 ]).map((event) => event.slug)
 
 assert.deepEqual(sortedRegularClasses, ['weekday-1-a', 'weekday-2-b', 'weekday-2-a', 'weekday-null'])
+assert.match(calendarPage, /const eventTypeFilters = \['all', 'social', 'class', 'workshop', 'event'\] as const/)
+assert.match(calendarPage, /\{ title: t\('calendar\.upcomingEvents'\), events: upcomingAndOngoingEvents\.value \},[\s\S]*\{ title: t\('calendar\.regularClasses'\), events: regularClassEvents\.value \}/)
 
 console.log('verify-calendar-list: ok')

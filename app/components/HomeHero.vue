@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { resolveTallyFormUrl } from '~~/lib/event-report'
+import { imageAssets } from '~~/lib/image-assets'
 
 const localePath = useLocalePath()
 const config = useRuntimeConfig()
 const imageFailed = ref(false)
-const heroImageSrc = '/images/home-hero-taipei.webp'
+const heroImageSrc = imageAssets.heroTaipei101.src
 const submissionUrl = computed(() => resolveTallyFormUrl(config.public.eventSubmissionFormUrl).url)
 </script>
 
@@ -15,8 +16,8 @@ const submissionUrl = computed(() => resolveTallyFormUrl(config.public.eventSubm
         v-if="!imageFailed"
         :src="heroImageSrc"
         :alt="$t('home.heroImageAlt')"
-        width="2000"
-        height="3000"
+        width="2400"
+        height="1601"
         loading="eager"
         fetchpriority="high"
         @error="imageFailed = true"
