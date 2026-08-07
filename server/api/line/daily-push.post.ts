@@ -1,5 +1,6 @@
-import { sendWeeklyLinePush } from '~~/lib/line/sendWeeklyLinePush'
+import { sendDailyLinePush } from '~~/lib/line/sendDailyLinePush'
 import { verifyJobAuthorization } from '~~/lib/line/verifyJobAuthorization'
+import { resolveLinePushDate } from '~~/lib/line/resolveLinePushDate'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
@@ -22,22 +23,34 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const query = getQuery(event)
+  const now = resolveLinePushDate(query.date)
+
+  if (!now) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid date query'
+    })
+  }
+
   try {
-    const result = await sendWeeklyLinePush({
+    const result = await sendDailyLinePush({
       lineChannelAccessToken: config.lineChannelAccessToken,
-      linePublicGroupId: config.linePublicGroupId
+      linePublicGroupId: config.linePublicGroupId,
+      now
     })
 
     return {
       success: true,
-      message: 'Weekly LINE push sent',
-      eventCount: result.eventCount
+      message: result.skipped ? 'No daily events to send' : 'Daily LINE push sent',
+      eventCount: result.eventCount,
+      skipped: result.skipped
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
 
     if (message.startsWith('LINE push failed')) {
-      console.error('LINE weekly push request failed:', message)
+      console.error('LINE daily push request failed:', message)
 
       throw createError({
         statusCode: 502,
@@ -45,11 +58,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    console.error('Unexpected LINE weekly push error:', message)
+    console.error('Unexpected LINE daily push error:', message)
 
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to process weekly LINE push request'
+      statusMessage: 'Failed to process daily LINE push request'
     })
   }
 })

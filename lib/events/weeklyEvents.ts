@@ -12,6 +12,11 @@ export interface TaipeiWeekRange {
   end: Dayjs
 }
 
+export interface TaipeiDateRange {
+  start: Dayjs
+  end: Dayjs
+}
+
 export function getTaipeiWeekRange(now: Dayjs = dayjs()): TaipeiWeekRange {
   const current = now.tz(TAIPEI_TIMEZONE)
   const mondayOffset = (current.day() + 6) % 7
@@ -21,6 +26,36 @@ export function getTaipeiWeekRange(now: Dayjs = dayjs()): TaipeiWeekRange {
     start,
     end: start.add(6, 'day').endOf('day')
   }
+}
+
+export function getNextTaipeiWeekRange(now: Dayjs = dayjs()): TaipeiWeekRange {
+  const currentWeek = getTaipeiWeekRange(now)
+  const start = currentWeek.start.add(7, 'day')
+
+  return {
+    start,
+    end: start.add(6, 'day').endOf('day')
+  }
+}
+
+export function getTaipeiDayRange(now: Dayjs = dayjs()): TaipeiDateRange {
+  const current = now.tz(TAIPEI_TIMEZONE)
+
+  return {
+    start: current.startOf('day'),
+    end: current.endOf('day')
+  }
+}
+
+export function parseTaipeiDateInput(value: string) {
+  const normalized = value.trim()
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return null
+  }
+
+  const parsed = dayjs.tz(normalized, 'YYYY-MM-DD', TAIPEI_TIMEZONE)
+  return parsed.isValid() && parsed.format('YYYY-MM-DD') === normalized ? parsed : null
 }
 
 function compareWeeklyEvents(a: EventItem, b: EventItem) {
@@ -39,9 +74,7 @@ function compareWeeklyEvents(a: EventItem, b: EventItem) {
   return (a.slug || a.id).localeCompare(b.slug || b.id)
 }
 
-export function selectWeeklyEvents(events: readonly EventItem[], now: Dayjs = dayjs()) {
-  const { start: weekStart, end: weekEnd } = getTaipeiWeekRange(now)
-
+export function selectEventsInRange(events: readonly EventItem[], range: TaipeiDateRange) {
   return [...events]
     .filter(event => event.status.toLowerCase() === 'published')
     .filter(event => event.timeStatus !== 'invalid')
@@ -49,8 +82,20 @@ export function selectWeeklyEvents(events: readonly EventItem[], now: Dayjs = da
     .filter((event) => {
       const eventRange = getEventTimeRangeInTaipei(event)
       return Boolean(eventRange
-        && !eventRange.start.isAfter(weekEnd)
-        && !eventRange.end.isBefore(weekStart))
+        && !eventRange.start.isAfter(range.end)
+        && !eventRange.end.isBefore(range.start))
     })
     .sort(compareWeeklyEvents)
+}
+
+export function selectWeeklyEvents(events: readonly EventItem[], now: Dayjs = dayjs()) {
+  return selectEventsInRange(events, getTaipeiWeekRange(now))
+}
+
+export function selectNextWeeklyEvents(events: readonly EventItem[], now: Dayjs = dayjs()) {
+  return selectEventsInRange(events, getNextTaipeiWeekRange(now))
+}
+
+export function selectDailyEvents(events: readonly EventItem[], now: Dayjs = dayjs()) {
+  return selectEventsInRange(events, getTaipeiDayRange(now))
 }

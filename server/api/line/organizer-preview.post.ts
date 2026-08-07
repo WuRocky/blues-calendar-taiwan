@@ -1,5 +1,6 @@
-import { sendWeeklyLinePush } from '~~/lib/line/sendWeeklyLinePush'
+import { sendOrganizerPreviewLinePush } from '~~/lib/line/sendOrganizerPreviewLinePush'
 import { verifyJobAuthorization } from '~~/lib/line/verifyJobAuthorization'
+import { resolveLinePushDate } from '~~/lib/line/resolveLinePushDate'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
@@ -15,29 +16,40 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (!config.linePublicGroupId || !config.lineChannelAccessToken || !config.lineJobSecret) {
+  if (!config.lineOrganizerGroupId || !config.lineChannelAccessToken || !config.lineJobSecret) {
     throw createError({
       statusCode: 500,
       statusMessage: 'Missing LINE configuration'
     })
   }
 
+  const query = getQuery(event)
+  const now = resolveLinePushDate(query.date)
+
+  if (!now) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid date query'
+    })
+  }
+
   try {
-    const result = await sendWeeklyLinePush({
+    const result = await sendOrganizerPreviewLinePush({
       lineChannelAccessToken: config.lineChannelAccessToken,
-      linePublicGroupId: config.linePublicGroupId
+      lineOrganizerGroupId: config.lineOrganizerGroupId,
+      now
     })
 
     return {
       success: true,
-      message: 'Weekly LINE push sent',
+      message: 'Organizer preview LINE push sent',
       eventCount: result.eventCount
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'
 
     if (message.startsWith('LINE push failed')) {
-      console.error('LINE weekly push request failed:', message)
+      console.error('LINE organizer preview push request failed:', message)
 
       throw createError({
         statusCode: 502,
@@ -45,11 +57,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    console.error('Unexpected LINE weekly push error:', message)
+    console.error('Unexpected LINE organizer preview push error:', message)
 
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to process weekly LINE push request'
+      statusMessage: 'Failed to process organizer preview LINE push request'
     })
   }
 })
