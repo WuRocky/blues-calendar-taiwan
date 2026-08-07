@@ -36,6 +36,7 @@ const organizerPreviewApi = fs.readFileSync(new URL('../server/api/line/organize
 const dailyPushApi = fs.readFileSync(new URL('../server/api/line/daily-push.post.ts', import.meta.url), 'utf8')
 const envExample = fs.readFileSync(new URL('../.env.example', import.meta.url), 'utf8')
 const wranglerConfig = fs.readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8')
+const cronPlugin = fs.readFileSync(new URL('../server/plugins/line-cron-test.ts', import.meta.url), 'utf8')
 
 function makeEvent(overrides = {}) {
   return {
@@ -107,7 +108,7 @@ const noEventsMessage = formatWeeklyEventsMessage({
   weekEnd: weekRange.end,
   events: []
 })
-assert.equal(noEventsMessage, '本週暫無 Blues 活動 💙')
+assert.equal(noEventsMessage, '💙 本週 Blues 活動\n8/3（一）－8/9（日）\n\n本週暫無 Blues 活動 💙')
 
 const weeklyMessage = formatWeeklyEventsMessage({
   weekStart: weekRange.start,
@@ -189,6 +190,11 @@ assert.match(dailyPushApi, /linePublicGroupId: config\.linePublicGroupId/)
 assert.match(organizerPreviewApi, /Invalid date query/)
 assert.match(dailyPushApi, /Invalid date query/)
 assert.match(envExample, /NUXT_LINE_GROUP_ID=\nNUXT_LINE_ORGANIZER_GROUP_ID=\nNUXT_LINE_PUBLIC_GROUP_ID=/)
-assert.doesNotMatch(wranglerConfig, /"crons"/)
+assert.match(wranglerConfig, /"\*\/10 \* \* \* \*"/)
+assert.match(cronPlugin, /LINE weekly cron started/)
+assert.match(cronPlugin, /getWeeklyEvents/)
+assert.match(cronPlugin, /formatWeeklyEventsMessage/)
+assert.match(cronPlugin, /NUXT_LINE_GROUP_ID/)
+assert.doesNotMatch(cronPlugin, /NUXT_LINE_PUBLIC_GROUP_ID|NUXT_LINE_ORGANIZER_GROUP_ID/)
 
 console.log('verify-line-weekly-push: ok')
