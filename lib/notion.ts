@@ -13,6 +13,8 @@ const publicSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const EVENTS_CACHE_TTL_SECONDS = 300
 
 export interface NotionConnectionConfig {
+  token?: string
+  databaseId?: string
   notionEventsDatabaseId: string
   notionToken: string
 }
@@ -48,8 +50,8 @@ const eventSchema = z.object({
 
 function resolveNotionConnectionConfig(overrides?: Partial<NotionConnectionConfig>): NotionConnectionConfig {
   const config = useRuntimeConfig()
-  const notionToken = overrides?.notionToken || config.notionToken || ''
-  const notionEventsDatabaseId = overrides?.notionEventsDatabaseId || config.notionEventsDatabaseId || ''
+  const notionToken = overrides?.notionToken || overrides?.token || config.notionToken || ''
+  const notionEventsDatabaseId = overrides?.notionEventsDatabaseId || overrides?.databaseId || config.notionEventsDatabaseId || ''
 
   return {
     notionToken,
