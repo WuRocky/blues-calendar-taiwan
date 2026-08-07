@@ -14,8 +14,8 @@ dayjs.extend(timezone)
 const TEST_CRON_EXPRESSION = '*/10 * * * *'
 
 interface LineCronEnvBindings {
-  NOTION_EVENTS_DATABASE_ID?: string
-  NOTION_TOKEN?: string
+  NUXT_NOTION_EVENTS_DATABASE_ID?: string
+  NUXT_NOTION_TOKEN?: string
   NUXT_LINE_CHANNEL_ACCESS_TOKEN?: string
   NUXT_LINE_GROUP_ID?: string
 }
@@ -58,8 +58,8 @@ export default defineNitroPlugin((nitroApp) => {
     const { env } = event
     const lineGroupId = getEnvBinding(env, 'NUXT_LINE_GROUP_ID')
     const lineChannelAccessToken = getEnvBinding(env, 'NUXT_LINE_CHANNEL_ACCESS_TOKEN')
-    const notionToken = getEnvBinding(env, 'NOTION_TOKEN')
-    const notionEventsDatabaseId = getEnvBinding(env, 'NOTION_EVENTS_DATABASE_ID')
+    const notionToken = getEnvBinding(env, 'NUXT_NOTION_TOKEN')
+    const notionEventsDatabaseId = getEnvBinding(env, 'NUXT_NOTION_EVENTS_DATABASE_ID')
 
     console.log('LINE weekly cron config status', {
       hasLineGroupId: Boolean(lineGroupId),
@@ -77,8 +77,8 @@ export default defineNitroPlugin((nitroApp) => {
 
     try {
       const events = await getWeeklyEvents(now, {
-        notionToken,
-        notionEventsDatabaseId,
+        token: notionToken,
+        databaseId: notionEventsDatabaseId,
       })
       const weekRange = getTaipeiWeekRange(now)
       const message = formatWeeklyEventsMessage({
