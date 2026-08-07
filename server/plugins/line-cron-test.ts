@@ -61,6 +61,13 @@ export default defineNitroPlugin((nitroApp) => {
     const notionToken = getEnvBinding(env, 'NOTION_TOKEN')
     const notionEventsDatabaseId = getEnvBinding(env, 'NOTION_EVENTS_DATABASE_ID')
 
+    console.log('LINE weekly cron config status', {
+      hasLineGroupId: Boolean(lineGroupId),
+      hasLineChannelAccessToken: Boolean(lineChannelAccessToken),
+      hasNotionToken: Boolean(notionToken),
+      hasNotionDatabaseId: Boolean(notionEventsDatabaseId),
+    })
+
     if (!lineGroupId || !lineChannelAccessToken || !notionToken || !notionEventsDatabaseId) {
       console.log('LINE weekly cron skipped: missing configuration')
       return
