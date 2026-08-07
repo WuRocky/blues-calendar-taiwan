@@ -30,33 +30,43 @@ function getEnvBinding(env: unknown, key: keyof LineCronEnvBindings) {
 }
 
 export default defineNitroPlugin((nitroApp) => {
-  nitroApp.hooks.hook('cloudflare:scheduled', async ({
-    controller,
-    env
-  }) => {
-    console.log('LINE weekly cron started', {
-      cron: controller.cron,
-      scheduledTime: controller.scheduledTime,
+  nitroApp.hooks.hook('cloudflare:scheduled', async (event) => {
+    const actualCron = event.controller?.cron ?? null
+    const scheduledTime = event.controller?.scheduledTime ?? null
+
+    console.log('LINE weekly cron raw event received')
+    console.log('LINE weekly cron event info', {
+      hasEvent: Boolean(event),
+      cron: actualCron,
+      scheduledTime,
     })
 
-    if (controller.cron !== TEST_CRON_EXPRESSION) {
-      console.warn('LINE weekly cron skipped: unknown cron', {
-        cron: controller.cron,
+    if (actualCron !== TEST_CRON_EXPRESSION) {
+      console.log('LINE weekly cron skipped: cron mismatch')
+      console.log('LINE weekly cron cron mismatch', {
+        receivedCron: actualCron,
+        expectedCron: TEST_CRON_EXPRESSION,
       })
       return
     }
 
+    console.log('LINE weekly cron started', {
+      cron: actualCron,
+      scheduledTime,
+    })
+
+    const { env } = event
     const lineGroupId = getEnvBinding(env, 'NUXT_LINE_GROUP_ID')
     const lineChannelAccessToken = getEnvBinding(env, 'NUXT_LINE_CHANNEL_ACCESS_TOKEN')
     const notionToken = getEnvBinding(env, 'NOTION_TOKEN')
     const notionEventsDatabaseId = getEnvBinding(env, 'NOTION_EVENTS_DATABASE_ID')
 
     if (!lineGroupId || !lineChannelAccessToken || !notionToken || !notionEventsDatabaseId) {
-      console.warn('LINE weekly cron skipped: missing configuration')
+      console.log('LINE weekly cron skipped: missing configuration')
       return
     }
 
-    const now = dayjs(controller.scheduledTime).tz(TAIPEI_TIMEZONE)
+    const now = dayjs(event.controller.scheduledTime).tz(TAIPEI_TIMEZONE)
 
     try {
       const events = await getWeeklyEvents(now, {
