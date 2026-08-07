@@ -6,6 +6,12 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxtjs/i18n'],
   css: ['~/assets/css/main.css'],
+  nitro: {
+    preset: 'cloudflare-module',
+    cloudflare: {
+      nodeCompat: true
+    }
+  },
   runtimeConfig: {
     notionToken: '',
     notionEventsDatabaseId: '',
