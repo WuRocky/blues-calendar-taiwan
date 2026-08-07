@@ -21,14 +21,14 @@ export function formatWeeklyEventsMessage({
   weekEnd,
   events
 }: FormatWeeklyEventsMessageParams) {
-  if (!events.length) {
-    return '本週暫無 Blues 活動 💙'
-  }
-
   const header = [
     '💙 本週 Blues 活動',
     formatWeekRangeLine(weekStart.tz(TAIPEI_TIMEZONE), weekEnd.tz(TAIPEI_TIMEZONE))
   ].join('\n')
+
+  if (!events.length) {
+    return [header, '本週暫無 Blues 活動 💙'].join('\n\n')
+  }
 
   const blocks = events.map(event => formatLineEventBlock(event, 'weekly')).filter(Boolean)
   const messageParts = [header]

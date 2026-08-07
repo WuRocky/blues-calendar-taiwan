@@ -12,6 +12,11 @@ import type { BaseEventItem, EventItem, EventStatus, EventType } from '~~/types/
 const publicSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 const EVENTS_CACHE_TTL_SECONDS = 300
 
+export interface NotionConnectionConfig {
+  notionEventsDatabaseId: string
+  notionToken: string
+}
+
 const eventSchema = z.object({
   id: z.string().default(''),
   slug: z.string().default(''),
@@ -41,8 +46,19 @@ const eventSchema = z.object({
   published: z.boolean().default(false)
 })
 
-function getNotionClient() {
+function resolveNotionConnectionConfig(overrides?: Partial<NotionConnectionConfig>): NotionConnectionConfig {
   const config = useRuntimeConfig()
+  const notionToken = overrides?.notionToken || config.notionToken || ''
+  const notionEventsDatabaseId = overrides?.notionEventsDatabaseId || config.notionEventsDatabaseId || ''
+
+  return {
+    notionToken,
+    notionEventsDatabaseId
+  }
+}
+
+function getNotionClient(overrides?: Partial<NotionConnectionConfig>) {
+  const config = resolveNotionConnectionConfig(overrides)
 
   if (!config.notionToken) {
     throw createError({
@@ -276,17 +292,17 @@ async function getEventsDataSourceId(client: Client, databaseId: string) {
   return dataSourceId
 }
 
-const getCachedEventsDataSourceId = defineCachedFunction(async (databaseId: string) => {
+const getCachedEventsDataSourceId = defineCachedFunction(async (config: NotionConnectionConfig) => {
   logNotionCacheMiss('data-source')
 
-  const client = getNotionClient()
-  return getEventsDataSourceId(client, databaseId)
+  const client = getNotionClient(config)
+  return getEventsDataSourceId(client, config.notionEventsDatabaseId)
 }, {
   name: 'notion-events-data-source-id',
   group: 'notion',
   maxAge: EVENTS_CACHE_TTL_SECONDS,
   swr: false,
-  getKey: (databaseId: string) => databaseId
+  getKey: (config: NotionConnectionConfig) => config.notionEventsDatabaseId
 })
 
 function mapNotionPageToEventResult(page: any, description = ''): MappedEventResult {
@@ -350,11 +366,11 @@ export function mapNotionPageToEvent(page: any, description = ''): BaseEventItem
   return mapNotionPageToEventResult(page, description).event
 }
 
-const getCachedPublishedEventSource = defineCachedFunction(async (databaseId: string) => {
+const getCachedPublishedEventSource = defineCachedFunction(async (config: NotionConnectionConfig) => {
   logNotionCacheMiss('events')
 
-  const client = getNotionClient()
-  const dataSourceId = await getCachedEventsDataSourceId(databaseId)
+  const client = getNotionClient(config)
+  const dataSourceId = await getCachedEventsDataSourceId(config)
 
   const results = await collectPaginatedNotionResults(
     async (startCursor): Promise<QueryDataSourceResponse> => {
@@ -394,7 +410,7 @@ const getCachedPublishedEventSource = defineCachedFunction(async (databaseId: st
   group: 'notion',
   maxAge: EVENTS_CACHE_TTL_SECONDS,
   swr: false,
-  getKey: (databaseId: string) => databaseId
+  getKey: (config: NotionConnectionConfig) => config.notionEventsDatabaseId
 })
 
 export async function getPublishedEvents() {
@@ -415,8 +431,8 @@ export async function getPublishedEvents() {
   }))
 }
 
-export async function getPublishedEventItems() {
-  const config = useRuntimeConfig()
+export async function getPublishedEventItems(overrides?: Partial<NotionConnectionConfig>) {
+  const config = resolveNotionConnectionConfig(overrides)
 
   if (!config.notionEventsDatabaseId) {
     throw createError({
@@ -425,7 +441,7 @@ export async function getPublishedEventItems() {
     })
   }
 
-  const publishedSource = await getCachedPublishedEventSource(config.notionEventsDatabaseId)
+  const publishedSource = await getCachedPublishedEventSource(config)
   return publishedSource.map(({ event, timeIssues }) =>
     createEventItemWithTimeStatus(event, timeIssues)
   )
@@ -438,13 +454,13 @@ export async function getHomeCalendarEvents() {
 }
 
 export async function getSitemapEvents() {
-  const config = useRuntimeConfig()
+  const config = resolveNotionConnectionConfig()
 
   if (!config.notionEventsDatabaseId) {
     return []
   }
 
-  const publishedSource = await getCachedPublishedEventSource(config.notionEventsDatabaseId)
+  const publishedSource = await getCachedPublishedEventSource(config)
 
   return publishedSource.flatMap(({ event: mappedEvent, timeIssues }) => {
     const event = createEventItemWithTimeStatus(mappedEvent, timeIssues)
@@ -453,7 +469,7 @@ export async function getSitemapEvents() {
 }
 
 export async function getEventBySlug(slug: string) {
-  const config = useRuntimeConfig()
+  const config = resolveNotionConnectionConfig()
 
   if (!config.notionEventsDatabaseId) {
     throw createError({
@@ -462,8 +478,8 @@ export async function getEventBySlug(slug: string) {
     })
   }
 
-  const client = getNotionClient()
-  const dataSourceId = await getCachedEventsDataSourceId(config.notionEventsDatabaseId)
+  const client = getNotionClient(config)
+  const dataSourceId = await getCachedEventsDataSourceId(config)
   const response = await client.dataSources.query({
     data_source_id: dataSourceId,
     filter: {
