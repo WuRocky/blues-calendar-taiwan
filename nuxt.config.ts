@@ -10,6 +10,8 @@ export default defineNuxtConfig({
     notionToken: '',
     notionEventsDatabaseId: '',
     lineGroupId: '',
+    lineOrganizerGroupId: '',
+    linePublicGroupId: '',
     lineChannelAccessToken: '',
     lineChannelSecret: '',
     lineJobSecret: '',

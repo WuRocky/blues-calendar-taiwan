@@ -2,7 +2,7 @@ import dayjs, { type Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { TAIPEI_TIMEZONE } from '~~/lib/event-time'
-import { formatLineEventBlock, formatWeekRangeLine } from '~~/lib/line/formatLineEventBlocks'
+import { formatDailyRangeLine, formatLineEventBlock } from '~~/lib/line/formatLineEventBlocks'
 import type { EventItem } from '~~/types/event'
 
 dayjs.extend(utc)
@@ -10,27 +10,22 @@ dayjs.extend(timezone)
 
 const MAX_LINE_TEXT_LENGTH = 5000
 
-export interface FormatWeeklyEventsMessageParams {
+export interface FormatDailyEventsMessageParams {
+  date: Dayjs
   events: readonly EventItem[]
-  weekEnd: Dayjs
-  weekStart: Dayjs
 }
 
-export function formatWeeklyEventsMessage({
-  weekStart,
-  weekEnd,
+export function formatDailyEventsMessage({
+  date,
   events
-}: FormatWeeklyEventsMessageParams) {
+}: FormatDailyEventsMessageParams) {
+  const header = `💙 今天的 Blues 活動｜${formatDailyRangeLine(date.tz(TAIPEI_TIMEZONE))}`
+
   if (!events.length) {
-    return '本週暫無 Blues 活動 💙'
+    return header
   }
 
-  const header = [
-    '💙 本週 Blues 活動',
-    formatWeekRangeLine(weekStart.tz(TAIPEI_TIMEZONE), weekEnd.tz(TAIPEI_TIMEZONE))
-  ].join('\n')
-
-  const blocks = events.map(event => formatLineEventBlock(event, 'weekly')).filter(Boolean)
+  const blocks = events.map(event => formatLineEventBlock(event, 'daily')).filter(Boolean)
   const messageParts = [header]
 
   for (const block of blocks) {
