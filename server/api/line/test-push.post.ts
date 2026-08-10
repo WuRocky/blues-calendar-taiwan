@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (!config.lineGroupId || !config.lineChannelAccessToken || !config.lineJobSecret) {
+  if (!config.lineLegacyGroupId || !config.lineLegacyChannelAccessToken || !config.lineJobSecret) {
     throw createError({
       statusCode: 500,
       statusMessage: 'Missing LINE configuration'
@@ -26,8 +26,8 @@ export default defineEventHandler(async (event) => {
 
   try {
     await pushLineTextMessage({
-      channelAccessToken: config.lineChannelAccessToken,
-      targetId: config.lineGroupId,
+      channelAccessToken: config.lineLegacyChannelAccessToken,
+      targetId: config.lineLegacyGroupId,
       text: TEST_PUSH_MESSAGE
     })
 

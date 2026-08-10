@@ -17,7 +17,7 @@ interface LineCronEnvBindings {
   NUXT_NOTION_EVENTS_DATABASE_ID?: string
   NUXT_NOTION_TOKEN?: string
   NUXT_LINE_CHANNEL_ACCESS_TOKEN?: string
-  NUXT_LINE_GROUP_ID?: string
+  NUXT_LINE_PUBLIC_GROUP_ID?: string
 }
 
 function getEnvBinding(env: unknown, key: keyof LineCronEnvBindings) {
@@ -56,19 +56,19 @@ export default defineNitroPlugin((nitroApp) => {
     })
 
     const { env } = event
-    const lineGroupId = getEnvBinding(env, 'NUXT_LINE_GROUP_ID')
+    const linePublicGroupId = getEnvBinding(env, 'NUXT_LINE_PUBLIC_GROUP_ID')
     const lineChannelAccessToken = getEnvBinding(env, 'NUXT_LINE_CHANNEL_ACCESS_TOKEN')
     const notionToken = getEnvBinding(env, 'NUXT_NOTION_TOKEN')
     const notionEventsDatabaseId = getEnvBinding(env, 'NUXT_NOTION_EVENTS_DATABASE_ID')
 
     console.log('LINE weekly cron config status', {
-      hasLineGroupId: Boolean(lineGroupId),
+      hasLinePublicGroupId: Boolean(linePublicGroupId),
       hasLineChannelAccessToken: Boolean(lineChannelAccessToken),
       hasNotionToken: Boolean(notionToken),
       hasNotionDatabaseId: Boolean(notionEventsDatabaseId),
     })
 
-    if (!lineGroupId || !lineChannelAccessToken || !notionToken || !notionEventsDatabaseId) {
+    if (!linePublicGroupId || !lineChannelAccessToken || !notionToken || !notionEventsDatabaseId) {
       console.log('LINE weekly cron skipped: missing configuration')
       return
     }
@@ -95,7 +95,7 @@ export default defineNitroPlugin((nitroApp) => {
 
       await pushLineMessage({
         channelAccessToken: lineChannelAccessToken,
-        targetId: lineGroupId,
+        targetId: linePublicGroupId,
         messages: [message],
       })
 
