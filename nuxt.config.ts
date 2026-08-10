@@ -15,7 +15,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     notionToken: '',
     notionEventsDatabaseId: '',
-    lineGroupId: '',
+    lineLegacyGroupId: '',
+    lineLegacyChannelAccessToken: '',
+    lineLegacyChannelSecret: '',
     lineOrganizerGroupId: '',
     linePublicGroupId: '',
     lineChannelAccessToken: '',

@@ -208,18 +208,17 @@ assert.equal(verifyJobAuthorization({
   lineJobSecret: 'weekly-secret'
 }), false)
 
-assert.match(testPushApi, /targetId: config\.lineGroupId/)
+assert.match(testPushApi, /targetId: config\.lineLegacyGroupId/)
 assert.match(organizerPreviewApi, /lineOrganizerGroupId: config\.lineOrganizerGroupId/)
 assert.match(weeklyPushApi, /linePublicGroupId: config\.linePublicGroupId/)
 assert.match(dailyPushApi, /linePublicGroupId: config\.linePublicGroupId/)
 assert.match(organizerPreviewApi, /Invalid date query/)
 assert.match(dailyPushApi, /Invalid date query/)
-assert.match(envExample, /NUXT_LINE_GROUP_ID=\nNUXT_LINE_ORGANIZER_GROUP_ID=\nNUXT_LINE_PUBLIC_GROUP_ID=/)
-assert.match(wranglerConfig, /"\*\/10 \* \* \* \*"/)
+assert.match(envExample, /NUXT_LINE_LEGACY_GROUP_ID=\nNUXT_LINE_LEGACY_CHANNEL_ACCESS_TOKEN=\nNUXT_LINE_LEGACY_CHANNEL_SECRET=\n\nNUXT_LINE_ORGANIZER_GROUP_ID=\nNUXT_LINE_PUBLIC_GROUP_ID=/)
+assert.match(wranglerConfig, /"crons": \[\]/)
 assert.match(cronPlugin, /LINE weekly cron started/)
 assert.match(cronPlugin, /getWeeklyEvents/)
 assert.match(cronPlugin, /formatWeeklyEventsFlexMessage/)
-assert.match(cronPlugin, /NUXT_LINE_GROUP_ID/)
-assert.doesNotMatch(cronPlugin, /NUXT_LINE_PUBLIC_GROUP_ID|NUXT_LINE_ORGANIZER_GROUP_ID/)
+assert.match(cronPlugin, /NUXT_LINE_PUBLIC_GROUP_ID/)
 
 console.log('verify-line-weekly-push: ok')
