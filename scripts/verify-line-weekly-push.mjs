@@ -24,7 +24,7 @@ const {
   getTaipeiDayRange,
   parseTaipeiDateInput
 } = jiti('../lib/events/weeklyEvents.ts')
-const { formatWeeklyEventsMessage } = jiti('../lib/line/formatWeeklyEventsMessage.ts')
+const { formatWeeklyEventsFlexMessage } = jiti('../lib/line/formatWeeklyEventsFlexMessage.ts')
 const { formatOrganizerPreviewMessage } = jiti('../lib/line/formatOrganizerPreviewMessage.ts')
 const { formatDailyEventsMessage } = jiti('../lib/line/formatDailyEventsMessage.ts')
 const { verifyJobAuthorization } = jiti('../lib/line/verifyJobAuthorization.ts')
@@ -48,14 +48,17 @@ function makeEvent(overrides = {}) {
     eventType: 'event',
     summary: '',
     description: '',
+    scheduleType: 'Single',
     startTime: null,
     endTime: null,
     startTimeIsDateOnly: false,
     endTimeIsDateOnly: false,
+    specificDates: '',
     venueName: '',
     venueUrl: '',
     address: '',
     city: '',
+    country: '',
     organizer: '',
     weekday: null,
     weekdayOrder: null,
@@ -103,34 +106,49 @@ assert.equal(nextWeekRange.end.format('YYYY-MM-DD HH:mm:ss'), '2026-08-16 23:59:
 assert.equal(dayRange.start.format('YYYY-MM-DD HH:mm:ss'), '2026-08-06 00:00:00')
 assert.equal(dayRange.end.format('YYYY-MM-DD HH:mm:ss'), '2026-08-06 23:59:59')
 
-const noEventsMessage = formatWeeklyEventsMessage({
+const noEventsMessage = formatWeeklyEventsFlexMessage({
   weekStart: weekRange.start,
   weekEnd: weekRange.end,
   events: []
 })
-assert.equal(noEventsMessage, '💙 本週 Blues 活動\n8/3（一）－8/9（日）\n\n本週暫無 Blues 活動 💙')
+assert.equal(noEventsMessage.type, 'flex')
+assert.equal(noEventsMessage.altText, '本週 Blues 活動 8/3(一) ～ 8/9(日)，共 0 場活動')
+assert.equal(noEventsMessage.contents.type, 'bubble')
+assert.equal(noEventsMessage.contents.body.contents[0].text, '💙 本週 Blues 活動  8/3(一) ～ 8/9(日)')
+assert.equal(noEventsMessage.contents.body.contents[1].text, '本週暫無 Blues 活動 💙')
 
-const weeklyMessage = formatWeeklyEventsMessage({
+const weeklyMessage = formatWeeklyEventsFlexMessage({
   weekStart: weekRange.start,
   weekEnd: weekRange.end,
   events: weeklyEvents
 })
 
-assert.match(weeklyMessage, /^💙 本週 Blues 活動/)
-assert.match(weeklyMessage, /8\/3（一）－8\/9（日）/)
-assert.match(weeklyMessage, /8\/5（三） 20:00/)
-assert.match(weeklyMessage, /【Class】Blues 初級課/)
-assert.match(weeklyMessage, /📍 Space Mew/)
-assert.match(weeklyMessage, /地點：https:\/\/example\.com\/venue/)
-assert.match(weeklyMessage, /🔗 活動連結\nhttps:\/\/example\.com\/register/)
-assert.match(weeklyMessage, /📍 地點\nhttps:\/\/example\.com\/no-end-venue/)
-assert.match(weeklyMessage, /【Social】No End Social/)
-assert.doesNotMatch(weeklyMessage, /https:\/\/example\.com\/events\/weekly-class/)
-assert.doesNotMatch(weeklyMessage, /https:\/\/example\.com\/events\/no-end/)
-assert.doesNotMatch(weeklyMessage, /完整活動：/)
-assert.doesNotMatch(weeklyMessage, /notaurl/)
-assert.doesNotMatch(weeklyMessage, /undefined|null/)
-assert.doesNotMatch(weeklyMessage, /http:\/\/localhost:3000|rockywu971\.workers\.dev/)
+assert.equal(weeklyMessage.type, 'flex')
+assert.equal(weeklyMessage.altText, '本週 Blues 活動 8/3(一) ～ 8/9(日)，共 5 場活動')
+assert.equal(weeklyMessage.contents.type, 'carousel')
+assert.equal(weeklyMessage.contents.contents.length, 6)
+assert.equal(weeklyMessage.contents.contents[0].body.contents[0].text, '💙 本週 Blues 活動  8/3(一) ～ 8/9(日)')
+assert.equal(weeklyMessage.contents.contents[0].body.contents[1].text, '本週共 5 場活動')
+assert.equal(weeklyMessage.contents.contents[1].body.contents[0].text, '8/3（一） 00:00')
+assert.equal(weeklyMessage.contents.contents[1].body.contents[1].contents[0].text, 'SOCIAL')
+assert.equal(weeklyMessage.contents.contents[1].body.contents[2].text, 'Taipei Blues Social')
+assert.equal(weeklyMessage.contents.contents[1].body.contents[3].text, '📍 Dance Hall')
+assert.equal(weeklyMessage.contents.contents[2].body.contents[0].text, '8/5（三） 20:00')
+assert.equal(weeklyMessage.contents.contents[2].body.contents[1].contents[0].text, 'CLASS')
+assert.equal(weeklyMessage.contents.contents[2].body.contents[2].text, 'Blues 初級課')
+assert.equal(weeklyMessage.contents.contents[2].body.contents[3].text, '📍 Space Mew')
+assert.equal(weeklyMessage.contents.contents[2].footer.layout, 'horizontal')
+assert.equal(weeklyMessage.contents.contents[2].footer.contents[0].action.label, '查看地點')
+assert.equal(weeklyMessage.contents.contents[2].footer.contents[0].action.uri, 'https://example.com/venue')
+assert.equal(weeklyMessage.contents.contents[2].footer.contents[1].action.label, '活動資訊')
+assert.equal(weeklyMessage.contents.contents[2].footer.contents[1].action.uri, 'https://example.com/register')
+assert.equal(weeklyMessage.contents.contents[5].body.contents[0].text, '8/9（日） 19:30')
+assert.equal(weeklyMessage.contents.contents[5].body.contents[1].contents[0].text, 'SOCIAL')
+assert.equal(weeklyMessage.contents.contents[5].body.contents[2].text, 'No End Social')
+assert.equal(weeklyMessage.contents.contents[5].body.contents.length, 3)
+assert.equal(weeklyMessage.contents.contents[5].footer.layout, 'vertical')
+assert.equal(weeklyMessage.contents.contents[5].footer.contents[0].action.label, '查看地點')
+assert.equal(weeklyMessage.contents.contents[5].footer.contents[0].action.uri, 'https://example.com/no-end-venue')
 
 const organizerMessage = formatOrganizerPreviewMessage({
   weekStart: nextWeekRange.start,
@@ -193,7 +211,7 @@ assert.match(envExample, /NUXT_LINE_GROUP_ID=\nNUXT_LINE_ORGANIZER_GROUP_ID=\nNU
 assert.match(wranglerConfig, /"\*\/10 \* \* \* \*"/)
 assert.match(cronPlugin, /LINE weekly cron started/)
 assert.match(cronPlugin, /getWeeklyEvents/)
-assert.match(cronPlugin, /formatWeeklyEventsMessage/)
+assert.match(cronPlugin, /formatWeeklyEventsFlexMessage/)
 assert.match(cronPlugin, /NUXT_LINE_GROUP_ID/)
 assert.doesNotMatch(cronPlugin, /NUXT_LINE_PUBLIC_GROUP_ID|NUXT_LINE_ORGANIZER_GROUP_ID/)
 
