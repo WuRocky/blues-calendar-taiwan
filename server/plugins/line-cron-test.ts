@@ -11,7 +11,7 @@ import { pushLineMessage } from '~~/lib/line/pushLineMessage'
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
-const TEST_CRON_EXPRESSION = '*/10 * * * *'
+const TEST_CRON_EXPRESSION = '*/30 * * * *'
 
 interface LineCronEnvBindings {
   NUXT_NOTION_EVENTS_DATABASE_ID?: string
