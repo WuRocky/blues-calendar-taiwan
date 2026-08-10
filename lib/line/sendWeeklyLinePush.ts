@@ -3,8 +3,8 @@ import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { getWeeklyEvents } from '~~/lib/events/getWeeklyEvents'
 import { getTaipeiWeekRange } from '~~/lib/events/weeklyEvents'
-import { formatWeeklyEventsMessage } from '~~/lib/line/formatWeeklyEventsMessage'
-import { pushLineTextMessage } from '~~/lib/line/pushLineMessage'
+import { formatWeeklyEventsFlexMessage } from '~~/lib/line/formatWeeklyEventsFlexMessage'
+import { pushLineMessage } from '~~/lib/line/pushLineMessage'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
@@ -30,16 +30,16 @@ export async function sendWeeklyLinePush({
 
   const weeklyEvents = await getWeeklyEvents(now)
   const weekRange = getTaipeiWeekRange(now)
-  const message = formatWeeklyEventsMessage({
+  const message = formatWeeklyEventsFlexMessage({
     weekStart: weekRange.start,
     weekEnd: weekRange.end,
     events: weeklyEvents
   })
 
-  await pushLineTextMessage({
+  await pushLineMessage({
     channelAccessToken: lineChannelAccessToken,
     targetId: linePublicGroupId,
-    text: message
+    messages: [message]
   })
 
   return {

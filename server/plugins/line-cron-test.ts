@@ -5,8 +5,8 @@ import { defineNitroPlugin } from 'nitropack/runtime'
 import { getWeeklyEvents } from '~~/lib/events/getWeeklyEvents'
 import { getTaipeiWeekRange } from '~~/lib/events/weeklyEvents'
 import { TAIPEI_TIMEZONE } from '~~/lib/event-time'
-import { formatWeeklyEventsMessage } from '~~/lib/line/formatWeeklyEventsMessage'
-import { pushLineTextMessage } from '~~/lib/line/pushLineMessage'
+import { formatWeeklyEventsFlexMessage } from '~~/lib/line/formatWeeklyEventsFlexMessage'
+import { pushLineMessage } from '~~/lib/line/pushLineMessage'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
@@ -81,7 +81,7 @@ export default defineNitroPlugin((nitroApp) => {
         databaseId: notionEventsDatabaseId,
       })
       const weekRange = getTaipeiWeekRange(now)
-      const message = formatWeeklyEventsMessage({
+      const message = formatWeeklyEventsFlexMessage({
         weekStart: weekRange.start,
         weekEnd: weekRange.end,
         events,
@@ -93,10 +93,10 @@ export default defineNitroPlugin((nitroApp) => {
 
       console.log('LINE weekly cron push starting')
 
-      await pushLineTextMessage({
+      await pushLineMessage({
         channelAccessToken: lineChannelAccessToken,
         targetId: lineGroupId,
-        text: message,
+        messages: [message],
       })
 
       console.log('LINE weekly cron push sent', {

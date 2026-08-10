@@ -13,7 +13,30 @@ function getWeekdayLabel(value: Dayjs) {
   return WEEKDAY_LABELS[value.day()] ?? ''
 }
 
-function getValidHttpUrl(value: string) {
+export function formatWeekRangeLine(start: Dayjs, end: Dayjs) {
+  return `${start.format('M/D')}（${getWeekdayLabel(start)}）－${end.format('M/D')}（${getWeekdayLabel(end)}）`
+}
+
+export function formatWeekRangeInline(start: Dayjs, end: Dayjs) {
+  return `${start.format('M/D')}(${getWeekdayLabel(start)}) ～ ${end.format('M/D')}(${getWeekdayLabel(end)})`
+}
+
+export function formatDailyRangeLine(value: Dayjs) {
+  return `${value.format('M/D')}（${getWeekdayLabel(value)}）`
+}
+
+export function getEventTypeLabel(eventType: string) {
+  const normalized = eventType.toLowerCase()
+
+  if (normalized === 'class') return 'Class'
+  if (normalized === 'social' || normalized === 'open-floor') return 'Social'
+  if (normalized === 'practice') return 'Practice'
+  if (normalized === 'workshop') return 'Workshop'
+  if (normalized === 'event' || normalized === 'party' || normalized === 'festival') return 'Event'
+  return 'Other'
+}
+
+export function getValidHttpUrl(value: string) {
   const normalized = value.trim()
 
   if (!normalized) {
@@ -26,25 +49,6 @@ function getValidHttpUrl(value: string) {
   } catch {
     return null
   }
-}
-
-export function formatWeekRangeLine(start: Dayjs, end: Dayjs) {
-  return `${start.format('M/D')}（${getWeekdayLabel(start)}）－${end.format('M/D')}（${getWeekdayLabel(end)}）`
-}
-
-export function formatDailyRangeLine(value: Dayjs) {
-  return `${value.format('M/D')}（${getWeekdayLabel(value)}）`
-}
-
-function getEventTypeLabel(eventType: string) {
-  const normalized = eventType.toLowerCase()
-
-  if (normalized === 'class') return 'Class'
-  if (normalized === 'social' || normalized === 'open-floor') return 'Social'
-  if (normalized === 'practice') return 'Practice'
-  if (normalized === 'workshop') return 'Workshop'
-  if (normalized === 'event' || normalized === 'party' || normalized === 'festival') return 'Event'
-  return 'Other'
 }
 
 export function formatEventHeaderLine(event: Pick<EventItem, 'startTime' | 'startTimeIsDateOnly'>, mode: 'weekly' | 'daily') {
