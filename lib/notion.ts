@@ -25,17 +25,20 @@ const eventSchema = z.object({
   name: z.string().default('Untitled Event'),
   status: z.string().default('Draft'),
   eventStatus: z.enum(['scheduled', 'cancelled', 'postponed']).default('scheduled'),
-  eventType: z.enum(['class', 'social', 'event', 'open-floor', 'party', 'workshop', 'festival', 'other']).default('other'),
+  eventType: z.enum(['class', 'social', 'event', 'practice', 'open-floor', 'party', 'workshop', 'festival', 'other']).default('other'),
   summary: z.string().default(''),
   description: z.string().default(''),
+  scheduleType: z.string().default(''),
   startTime: z.string().nullable().default(null),
   endTime: z.string().nullable().default(null),
   startTimeIsDateOnly: z.boolean().default(false),
   endTimeIsDateOnly: z.boolean().default(false),
+  specificDates: z.string().default(''),
   venueName: z.string().default(''),
   venueUrl: z.string().default(''),
   address: z.string().default(''),
   city: z.string().default(''),
+  country: z.string().default(''),
   organizer: z.string().default(''),
   weekday: z.string().nullable().default(null),
   weekdayOrder: z.number().nullable().default(null),
@@ -80,6 +83,8 @@ function normalizeEventType(value: string): EventType {
       return 'class'
     case 'event':
       return 'event'
+    case 'practice':
+      return 'practice'
     case 'social':
       return 'social'
     case 'open-floor':
@@ -162,6 +167,10 @@ function getPlainTextProperty(page: any, name: string) {
 
   if (property.type === 'url') {
     return property.url || ''
+  }
+
+  if (property.type === 'date') {
+    return property.date?.start || ''
   }
 
   return property.plain_text || ''
@@ -316,23 +325,27 @@ function mapNotionPageToEventResult(page: any, description = ''): MappedEventRes
 
   const normalizedStartTime = normalizeNotionDateTime(getDate(page, 'Start Time'), 'start')
   const normalizedEndTime = normalizeNotionDateTime(getDate(page, 'End Time'), 'end')
+  const publishStatus = getSelect(page, 'Publish Status') || 'Draft'
   const event = eventSchema.parse({
     id: page?.id || '',
     slug,
     name: getTitle(page, 'Name'),
-    status: getSelect(page, 'Status') || 'Draft',
+    status: publishStatus,
     eventStatus: mapEventStatus(page),
     eventType: normalizeEventType(getSelect(page, 'Event Type') || 'other'),
     summary: getRichText(page, 'Summary'),
-    description: description || '',
+    description: description || getPlainTextProperty(page, 'Full Description'),
+    scheduleType: getSelect(page, 'Schedule Type') || '',
     startTime: normalizedStartTime.value,
     endTime: normalizedEndTime.value,
     startTimeIsDateOnly: normalizedStartTime.isDateOnly,
     endTimeIsDateOnly: normalizedEndTime.isDateOnly,
+    specificDates: getPlainTextProperty(page, 'Specific Dates'),
     venueName: getRichText(page, 'Venue Name'),
     venueUrl: getUrl(page, 'Venue URL'),
     address: getRichText(page, 'Address'),
     city: getSelect(page, 'City') || getRichText(page, 'City'),
+    country: getSelect(page, 'Country') || getRichText(page, 'Country'),
     organizer: getRichText(page, 'Organizer'),
     weekday: getSelect(page, 'Weekday') || null,
     weekdayOrder: getNumber(page, 'Weekday Order'),
@@ -342,7 +355,7 @@ function mapNotionPageToEventResult(page: any, description = ''): MappedEventRes
     coverImageUrl: getUrl(page, 'Cover Image URL'),
     recurring: getCheckbox(page, 'Recurring'),
     recurringText: getPlainTextProperty(page, 'Recurring Text'),
-    published: getSelect(page, 'Status').toLowerCase() === 'published'
+    published: publishStatus.toLowerCase() === 'published'
   })
 
   return {
@@ -379,7 +392,7 @@ const getCachedPublishedEventSource = defineCachedFunction(async (config: Notion
       return client.dataSources.query({
         data_source_id: dataSourceId,
         filter: {
-          property: 'Status',
+          property: 'Publish Status',
           select: {
             equals: 'Published'
           }
@@ -487,7 +500,7 @@ export async function getEventBySlug(slug: string) {
     filter: {
       and: [
         {
-          property: 'Status',
+          property: 'Publish Status',
           select: {
             equals: 'Published'
           }

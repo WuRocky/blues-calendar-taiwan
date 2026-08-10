@@ -46,10 +46,10 @@ const STATUS_COPY: Record<SeoLocale, Record<Exclude<EventStatus, 'scheduled'>, {
 }
 
 const TYPE_LABELS: Record<SeoLocale, Record<EventType, string>> = {
-  'zh-TW': { class: 'Blues 課程', workshop: 'Blues Workshop', social: 'Blues Social', 'open-floor': 'Blues Social', party: 'Blues 舞會', festival: 'Blues Festival', event: 'Blues 活動', other: 'Blues 活動' },
-  en: { class: 'Blues class', workshop: 'Blues workshop', social: 'Blues social', 'open-floor': 'Blues social', party: 'Blues party', festival: 'Blues festival', event: 'Blues event', other: 'Blues event' },
-  ja: { class: 'Blues クラス', workshop: 'Blues ワークショップ', social: 'Blues ソーシャル', 'open-floor': 'Blues ソーシャル', party: 'Blues パーティー', festival: 'Blues フェスティバル', event: 'Blues イベント', other: 'Blues イベント' },
-  ko: { class: 'Blues 수업', workshop: 'Blues 워크숍', social: 'Blues 소셜', 'open-floor': 'Blues 소셜', party: 'Blues 파티', festival: 'Blues 페스티벌', event: 'Blues 행사', other: 'Blues 행사' }
+  'zh-TW': { class: 'Blues 課程', workshop: 'Blues Workshop', social: 'Blues Social', practice: 'Blues 練習', 'open-floor': 'Blues Social', party: 'Blues 舞會', festival: 'Blues Festival', event: 'Blues 活動', other: 'Blues 活動' },
+  en: { class: 'Blues class', workshop: 'Blues workshop', social: 'Blues social', practice: 'Blues practice', 'open-floor': 'Blues social', party: 'Blues party', festival: 'Blues festival', event: 'Blues event', other: 'Blues event' },
+  ja: { class: 'Blues クラス', workshop: 'Blues ワークショップ', social: 'Blues ソーシャル', practice: 'Blues 練習会', 'open-floor': 'Blues ソーシャル', party: 'Blues パーティー', festival: 'Blues フェスティバル', event: 'Blues イベント', other: 'Blues イベント' },
+  ko: { class: 'Blues 수업', workshop: 'Blues 워크숍', social: 'Blues 소셜', practice: 'Blues 연습', 'open-floor': 'Blues 소셜', party: 'Blues 파티', festival: 'Blues 페스티벌', event: 'Blues 행사', other: 'Blues 행사' }
 }
 
 export function normalizeSeoLocale(locale: string): SeoLocale {
