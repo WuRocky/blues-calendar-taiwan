@@ -32,10 +32,14 @@ function getWeekdayLabel(value: Dayjs) {
 }
 
 function formatSummaryLine(weekStart: Dayjs, weekEnd: Dayjs) {
-  return `💙 本週 Blues 活動  ${formatWeekRangeInline(
+  return `💙 本週 Blues 活動`
+}
+
+function formatSummaryDateRange(weekStart: Dayjs, weekEnd: Dayjs) {
+  return formatWeekRangeInline(
     weekStart.tz(TAIPEI_TIMEZONE),
     weekEnd.tz(TAIPEI_TIMEZONE)
-  )}`
+  )
 }
 
 function formatAltText(weekStart: Dayjs, weekEnd: Dayjs, count: number) {
@@ -103,7 +107,29 @@ function createFooterButtons(event: Pick<EventItem, 'registrationUrl' | 'venueUr
   }
 }
 
-function createSummaryBubble(weekStart: Dayjs, weekEnd: Dayjs, count: number): LineFlexBubble {
+function createSummaryBubble(
+  weekStart: Dayjs,
+  weekEnd: Dayjs,
+  count: number,
+  events: readonly EventItem[]
+): LineFlexBubble {
+  const eventSummaryLines: LineFlexBox['contents'] = []
+
+  for (const event of events) {
+    if (!event.startTime) {
+      continue
+    }
+
+    const start = dayjs(event.startTime).tz(TAIPEI_TIMEZONE)
+    eventSummaryLines.push({
+      type: 'text',
+      text: `(${getWeekdayLabel(start)}) ${event.name}`,
+      size: 'sm',
+      color: '#374151',
+      wrap: true
+    })
+  }
+
   return {
     type: 'bubble',
     size: 'mega',
@@ -116,9 +142,15 @@ function createSummaryBubble(weekStart: Dayjs, weekEnd: Dayjs, count: number): L
           type: 'text',
           text: formatSummaryLine(weekStart, weekEnd),
           weight: 'bold',
+          size: 'lg',
+          wrap: true
+        },
+        {
+          type: 'text',
+          text: formatSummaryDateRange(weekStart, weekEnd),
           size: 'sm',
-          wrap: true,
-          maxLines: 1
+          color: '#4B5563',
+          wrap: true
         },
         {
           type: 'text',
@@ -126,7 +158,8 @@ function createSummaryBubble(weekStart: Dayjs, weekEnd: Dayjs, count: number): L
           size: 'md',
           weight: 'bold',
           color: '#1F2937'
-        }
+        },
+        ...eventSummaryLines
       ]
     }
   }
@@ -145,9 +178,15 @@ function createEmptyStateBubble(weekStart: Dayjs, weekEnd: Dayjs): LineFlexBubbl
           type: 'text',
           text: formatSummaryLine(weekStart, weekEnd),
           weight: 'bold',
+          size: 'lg',
+          wrap: true
+        },
+        {
+          type: 'text',
+          text: formatSummaryDateRange(weekStart, weekEnd),
           size: 'sm',
-          wrap: true,
-          maxLines: 1
+          color: '#4B5563',
+          wrap: true
         },
         {
           type: 'text',
@@ -246,7 +285,7 @@ export function formatWeeklyEventsFlexMessage({
     altText,
     contents: {
       type: 'carousel',
-      contents: [createSummaryBubble(weekStart, weekEnd, events.length), ...eventBubbles]
+      contents: [createSummaryBubble(weekStart, weekEnd, events.length, events), ...eventBubbles]
     }
   }
 }
