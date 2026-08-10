@@ -12,7 +12,7 @@
   "keep_vars": true,
   "triggers": {
     "crons": [
-      "*/10 * * * *"
+      "*/30 * * * *"
     ]
   }
 }
