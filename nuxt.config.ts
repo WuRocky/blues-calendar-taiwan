@@ -20,6 +20,9 @@ export default defineNuxtConfig({
     linePublicGroupId: '',
     lineChannelAccessToken: '',
     lineChannelSecret: '',
+    lineTestGroupId: '',
+    lineTestChannelAccessToken: '',
+    lineTestChannelSecret: '',
     lineJobSecret: '',
     public: {
       siteUrl: 'http://localhost:3000',
