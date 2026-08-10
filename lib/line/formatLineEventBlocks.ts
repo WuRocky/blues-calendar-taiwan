@@ -41,6 +41,7 @@ function getEventTypeLabel(eventType: string) {
 
   if (normalized === 'class') return 'Class'
   if (normalized === 'social' || normalized === 'open-floor') return 'Social'
+  if (normalized === 'practice') return 'Practice'
   if (normalized === 'workshop') return 'Workshop'
   if (normalized === 'event' || normalized === 'party' || normalized === 'festival') return 'Event'
   return 'Other'

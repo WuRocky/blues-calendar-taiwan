@@ -2,6 +2,7 @@ export type EventType =
   | 'class'
   | 'social'
   | 'event'
+  | 'practice'
   | 'workshop'
   | 'open-floor'
   | 'party'
@@ -29,14 +30,17 @@ export interface BaseEventItem {
   eventType: EventType
   summary: string
   description: string
+  scheduleType: string
   startTime: string | null
   endTime: string | null
   startTimeIsDateOnly: boolean
   endTimeIsDateOnly: boolean
+  specificDates: string
   venueName: string
   venueUrl: string
   address: string
   city: string
+  country: string
   organizer: string
   weekday: string | null
   weekdayOrder: number | null
