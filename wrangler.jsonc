@@ -9,5 +9,8 @@
     "binding": "ASSETS",
     "directory": ".output/public"
   },
-  "keep_vars": true
+  "keep_vars": true,
+  "triggers": {
+    "crons": []
+  }
 }
