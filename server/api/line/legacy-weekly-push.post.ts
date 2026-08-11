@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (!config.lineGroupId || !config.lineChannelAccessToken || !config.lineJobSecret) {
+  if (!config.lineLegacyGroupId || !config.lineLegacyChannelAccessToken || !config.lineJobSecret) {
     throw createError({
       statusCode: 500,
       statusMessage: 'Missing LINE configuration'
@@ -24,8 +24,8 @@ export default defineEventHandler(async (event) => {
 
   try {
     const result = await sendWeeklyLinePush({
-      lineChannelAccessToken: config.lineChannelAccessToken,
-      lineGroupId: config.lineGroupId
+      lineChannelAccessToken: config.lineLegacyChannelAccessToken,
+      lineGroupId: config.lineLegacyGroupId
     })
 
     return {
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
     const message = error instanceof Error ? error.message : 'Unknown error'
 
     if (message.startsWith('LINE push failed')) {
-      console.error('LINE weekly push request failed:', message)
+      console.error('LINE legacy weekly push request failed:', message)
 
       throw createError({
         statusCode: 502,
@@ -44,11 +44,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    console.error('Unexpected LINE weekly push error:', message)
+    console.error('Unexpected LINE legacy weekly push error:', message)
 
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to process weekly LINE push request'
+      statusMessage: 'Failed to process LINE legacy weekly push request'
     })
   }
 })
