@@ -210,11 +210,11 @@ assert.equal(verifyJobAuthorization({
 
 assert.match(testPushApi, /targetId: config\.lineLegacyGroupId/)
 assert.match(organizerPreviewApi, /lineOrganizerGroupId: config\.lineOrganizerGroupId/)
-assert.match(weeklyPushApi, /linePublicGroupId: config\.linePublicGroupId/)
+assert.match(weeklyPushApi, /lineGroupId: config\.lineGroupId/)
 assert.match(dailyPushApi, /linePublicGroupId: config\.linePublicGroupId/)
 assert.match(organizerPreviewApi, /Invalid date query/)
 assert.match(dailyPushApi, /Invalid date query/)
-assert.match(envExample, /NUXT_LINE_LEGACY_GROUP_ID=\nNUXT_LINE_LEGACY_CHANNEL_ACCESS_TOKEN=\nNUXT_LINE_LEGACY_CHANNEL_SECRET=\n\nNUXT_LINE_ORGANIZER_GROUP_ID=\nNUXT_LINE_PUBLIC_GROUP_ID=/)
+assert.match(envExample, /NUXT_LINE_GROUP_ID=\nNUXT_LINE_LEGACY_GROUP_ID=\nNUXT_LINE_LEGACY_CHANNEL_ACCESS_TOKEN=\nNUXT_LINE_LEGACY_CHANNEL_SECRET=/)
 assert.match(wranglerConfig, /"crons": \[\]/)
 assert.match(cronPlugin, /LINE weekly cron started/)
 assert.match(cronPlugin, /getWeeklyEvents/)

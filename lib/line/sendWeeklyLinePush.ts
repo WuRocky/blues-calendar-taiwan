@@ -11,7 +11,7 @@ dayjs.extend(timezone)
 
 export interface WeeklyLinePushConfig {
   lineChannelAccessToken: string
-  linePublicGroupId: string
+  lineGroupId: string
   now?: Dayjs
 }
 
@@ -20,11 +20,11 @@ export interface WeeklyLinePushResult {
 }
 
 export async function sendWeeklyLinePush({
-  linePublicGroupId,
+  lineGroupId,
   lineChannelAccessToken,
   now = dayjs()
 }: WeeklyLinePushConfig): Promise<WeeklyLinePushResult> {
-  if (!linePublicGroupId || !lineChannelAccessToken) {
+  if (!lineGroupId || !lineChannelAccessToken) {
     throw new Error('Missing LINE configuration')
   }
 
@@ -38,7 +38,7 @@ export async function sendWeeklyLinePush({
 
   await pushLineMessage({
     channelAccessToken: lineChannelAccessToken,
-    targetId: linePublicGroupId,
+    targetId: lineGroupId,
     messages: [message]
   })
 
