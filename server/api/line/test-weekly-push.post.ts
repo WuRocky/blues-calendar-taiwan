@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   try {
     const result = await sendWeeklyLinePush({
       lineChannelAccessToken: config.lineTestChannelAccessToken,
-      linePublicGroupId: config.lineTestGroupId
+      lineGroupId: config.lineTestGroupId
     })
 
     return {

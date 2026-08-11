@@ -85,6 +85,12 @@ export interface PushLineMessageParams {
   targetId: string
 }
 
+export interface ReplyLineMessageParams {
+  channelAccessToken: string
+  messages: LinePushMessage[]
+  replyToken: string
+}
+
 export interface LinePushTextMessageParams {
   channelAccessToken: string
   targetId: string
@@ -96,21 +102,23 @@ interface LinePushMessageBody {
   messages: LinePushMessage[]
 }
 
-export async function pushLineMessage({
-  channelAccessToken,
-  targetId,
-  messages
-}: PushLineMessageParams) {
-  const response = await fetch('https://api.line.me/v2/bot/message/push', {
+interface LineReplyMessageBody {
+  messages: LinePushMessage[]
+  replyToken: string
+}
+
+async function sendLineMessageRequest(
+  endpoint: 'push' | 'reply',
+  channelAccessToken: string,
+  body: LinePushMessageBody | LineReplyMessageBody
+) {
+  const response = await fetch(`https://api.line.me/v2/bot/message/${endpoint}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${channelAccessToken}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      to: targetId,
-      messages
-    } satisfies LinePushMessageBody)
+    body: JSON.stringify(body)
   })
 
   if (response.ok) {
@@ -118,7 +126,22 @@ export async function pushLineMessage({
   }
 
   const errorBody = await response.text()
-  throw new Error(`LINE push failed (${response.status}): ${errorBody}`)
+  throw new Error(`LINE ${endpoint} failed (${response.status}): ${errorBody}`)
+}
+
+export async function pushLineMessage({
+  channelAccessToken,
+  targetId,
+  messages
+}: PushLineMessageParams) {
+  await sendLineMessageRequest(
+    'push',
+    channelAccessToken,
+    {
+      to: targetId,
+      messages
+    } satisfies LinePushMessageBody
+  )
 }
 
 export async function pushLineTextMessage({
@@ -136,4 +159,19 @@ export async function pushLineTextMessage({
       }
     ]
   })
+}
+
+export async function replyLineMessage({
+  channelAccessToken,
+  replyToken,
+  messages
+}: ReplyLineMessageParams) {
+  await sendLineMessageRequest(
+    'reply',
+    channelAccessToken,
+    {
+      replyToken,
+      messages
+    } satisfies LineReplyMessageBody
+  )
 }

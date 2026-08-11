@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import { handleLineMentionCommand } from '~~/lib/line/handleLineMentionCommand'
 import { authorizeLineWebhook } from '~~/lib/line/verifyLineSignature'
 
 export interface LineWebhookSource {
@@ -9,6 +10,18 @@ export interface LineWebhookSource {
 }
 
 export interface LineWebhookEvent {
+  message?: {
+    mention?: {
+      mentionees?: Array<{
+        index: number
+        isSelf?: boolean
+        length: number
+      }>
+    }
+    text?: string
+    type?: string
+  }
+  replyToken?: string
   type: string
   source?: LineWebhookSource
 }
@@ -19,12 +32,14 @@ export interface LineWebhookBody {
 }
 
 export interface HandleLineWebhookParams {
+  channelAccessToken: string
   channelSecret: string
   event: H3Event
 }
 
 export async function handleLineWebhook({
   event,
+  channelAccessToken,
   channelSecret
 }: HandleLineWebhookParams) {
   try {
@@ -55,8 +70,17 @@ export async function handleLineWebhook({
         sourceType: lineEvent.source?.type ?? null
       })
 
-      if (lineEvent.source?.type === 'group' && lineEvent.source.groupId) {
-        console.log('LINE group ID:', lineEvent.source.groupId)
+      if (lineEvent.source?.type === 'group') {
+        console.log('LINE webhook group event received')
+      }
+
+      try {
+        await handleLineMentionCommand(lineEvent, channelAccessToken)
+      } catch (error) {
+        console.error(
+          'Failed to handle LINE mention command:',
+          error instanceof Error ? error.message : 'Unknown error'
+        )
       }
     }
 

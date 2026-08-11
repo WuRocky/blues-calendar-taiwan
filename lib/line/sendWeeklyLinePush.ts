@@ -1,9 +1,7 @@
 import dayjs, { type Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
-import { getWeeklyEvents } from '~~/lib/events/getWeeklyEvents'
-import { getTaipeiWeekRange } from '~~/lib/events/weeklyEvents'
-import { formatWeeklyEventsFlexMessage } from '~~/lib/line/formatWeeklyEventsFlexMessage'
+import { createWeeklyLineFlexMessage } from '~~/lib/line/createWeeklyLineFlexMessage'
 import { pushLineMessage } from '~~/lib/line/pushLineMessage'
 
 dayjs.extend(utc)
@@ -11,7 +9,7 @@ dayjs.extend(timezone)
 
 export interface WeeklyLinePushConfig {
   lineChannelAccessToken: string
-  linePublicGroupId: string
+  lineGroupId: string
   now?: Dayjs
 }
 
@@ -20,29 +18,23 @@ export interface WeeklyLinePushResult {
 }
 
 export async function sendWeeklyLinePush({
-  linePublicGroupId,
+  lineGroupId,
   lineChannelAccessToken,
   now = dayjs()
 }: WeeklyLinePushConfig): Promise<WeeklyLinePushResult> {
-  if (!linePublicGroupId || !lineChannelAccessToken) {
+  if (!lineGroupId || !lineChannelAccessToken) {
     throw new Error('Missing LINE configuration')
   }
 
-  const weeklyEvents = await getWeeklyEvents(now)
-  const weekRange = getTaipeiWeekRange(now)
-  const message = formatWeeklyEventsFlexMessage({
-    weekStart: weekRange.start,
-    weekEnd: weekRange.end,
-    events: weeklyEvents
-  })
+  const { eventCount, message } = await createWeeklyLineFlexMessage(now)
 
   await pushLineMessage({
     channelAccessToken: lineChannelAccessToken,
-    targetId: linePublicGroupId,
+    targetId: lineGroupId,
     messages: [message]
   })
 
   return {
-    eventCount: weeklyEvents.length
+    eventCount
   }
 }
