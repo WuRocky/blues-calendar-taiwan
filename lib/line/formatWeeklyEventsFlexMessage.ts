@@ -159,7 +159,15 @@ function createSummaryBubble(
           weight: 'bold',
           color: '#1F2937'
         },
-        ...eventSummaryLines
+        ...eventSummaryLines,
+        {
+          type: 'text',
+          text: '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。',
+          size: 'xs',
+          color: '#888888',
+          wrap: true,
+          margin: 'md'
+        }
       ]
     }
   }
