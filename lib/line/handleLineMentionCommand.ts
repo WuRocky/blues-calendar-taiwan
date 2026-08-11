@@ -25,6 +25,7 @@ export interface LineTextMessageEvent {
 }
 
 const SUPPORTED_WEEKLY_COMMANDS = new Set(['', '活動', '本週活動'])
+const RICH_MENU_WEEKLY_COMMAND = '本週活動'
 
 function stripSelfMentions(text: string, mentionees: readonly LineMentionee[]) {
   const segments = [...mentionees]
@@ -66,13 +67,35 @@ function getMentionCommand(event: LineTextMessageEvent) {
   return stripSelfMentions(text, mentionees)
 }
 
-export async function handleLineMentionCommand(
+function getDirectCommand(event: LineTextMessageEvent) {
+  if (event.type !== 'message') {
+    return null
+  }
+
+  if (event.message?.type !== 'text') {
+    return null
+  }
+
+  const text = typeof event.message.text === 'string' ? event.message.text.trim() : ''
+  return text || null
+}
+
+function shouldReplyWeeklyEvents(event: LineTextMessageEvent) {
+  const directCommand = getDirectCommand(event)
+
+  if (directCommand === RICH_MENU_WEEKLY_COMMAND) {
+    return true
+  }
+
+  const mentionCommand = getMentionCommand(event)
+  return mentionCommand !== null && SUPPORTED_WEEKLY_COMMANDS.has(mentionCommand)
+}
+
+export async function handleLineCommand(
   event: LineTextMessageEvent,
   channelAccessToken: string
 ) {
-  const command = getMentionCommand(event)
-
-  if (command === null || !SUPPORTED_WEEKLY_COMMANDS.has(command)) {
+  if (!shouldReplyWeeklyEvents(event)) {
     return false
   }
 

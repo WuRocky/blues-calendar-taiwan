@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { handleLineMentionCommand } from '~~/lib/line/handleLineMentionCommand'
+import { handleLineCommand } from '~~/lib/line/handleLineMentionCommand'
 import { authorizeLineWebhook } from '~~/lib/line/verifyLineSignature'
 
 export interface LineWebhookSource {
@@ -75,10 +75,10 @@ export async function handleLineWebhook({
       }
 
       try {
-        await handleLineMentionCommand(lineEvent, channelAccessToken)
+        await handleLineCommand(lineEvent, channelAccessToken)
       } catch (error) {
         console.error(
-          'Failed to handle LINE mention command:',
+          'Failed to handle LINE command:',
           error instanceof Error ? error.message : 'Unknown error'
         )
       }
