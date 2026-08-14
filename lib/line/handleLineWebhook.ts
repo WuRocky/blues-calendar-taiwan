@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { handleLineCommand } from '~~/lib/line/handleLineMentionCommand'
+import type { OrganizerCommandRuntimeConfig } from '~~/lib/line/handleLineOrganizerUpdate'
 import { authorizeLineWebhook } from '~~/lib/line/verifyLineSignature'
 
 export interface LineWebhookSource {
@@ -20,6 +21,9 @@ export interface LineWebhookEvent {
     }
     text?: string
     type?: string
+  }
+  postback?: {
+    data?: string
   }
   replyToken?: string
   type: string
@@ -63,6 +67,12 @@ export async function handleLineWebhook({
 
     const parsedBody = JSON.parse(rawBody) as LineWebhookBody
     const body = typeof parsedBody === 'object' && parsedBody !== null ? parsedBody : {}
+    const runtimeConfig = useRuntimeConfig(event)
+    const organizerConfig: OrganizerCommandRuntimeConfig = {
+      lineOrganizerGroupId: runtimeConfig.lineOrganizerGroupId,
+      notionEventsDatabaseId: runtimeConfig.notionEventsDatabaseId,
+      notionToken: runtimeConfig.notionToken
+    }
 
     for (const lineEvent of body?.events ?? []) {
       console.log('LINE webhook event:', {
@@ -79,7 +89,7 @@ export async function handleLineWebhook({
       }
 
       try {
-        await handleLineCommand(lineEvent, channelAccessToken)
+        await handleLineCommand(lineEvent, channelAccessToken, organizerConfig)
       } catch (error) {
         console.error(
           'Failed to handle LINE command:',

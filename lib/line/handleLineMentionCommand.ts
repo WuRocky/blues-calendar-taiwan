@@ -1,4 +1,6 @@
 import { createWeeklyLineFlexMessage } from '~~/lib/line/createWeeklyLineFlexMessage'
+import type { OrganizerCommandRuntimeConfig } from '~~/lib/line/handleLineOrganizerUpdate'
+import { handleOrganizerUpdateMessage, handleOrganizerUpdatePostback } from '~~/lib/line/handleLineOrganizerUpdate'
 import { replyLineMessage } from '~~/lib/line/pushLineMessage'
 
 interface LineMentionee {
@@ -17,9 +19,14 @@ export interface LineTextMessageEvent {
     text?: string
     type?: string
   }
+  postback?: {
+    data?: string
+  }
   replyToken?: string
   source?: {
+    groupId?: string
     type?: string
+    userId?: string
   }
   type?: string
 }
@@ -93,8 +100,17 @@ function shouldReplyWeeklyEvents(event: LineTextMessageEvent) {
 
 export async function handleLineCommand(
   event: LineTextMessageEvent,
-  channelAccessToken: string
+  channelAccessToken: string,
+  config: OrganizerCommandRuntimeConfig
 ) {
+  if (await handleOrganizerUpdatePostback(event, channelAccessToken, config)) {
+    return true
+  }
+
+  if (await handleOrganizerUpdateMessage(event, channelAccessToken, config)) {
+    return true
+  }
+
   if (!shouldReplyWeeklyEvents(event)) {
     return false
   }
