@@ -11,6 +11,8 @@
   },
   "keep_vars": true,
   "triggers": {
-    "crons": []
+    "crons": [
+      "*/15 * * * *"
+    ]
   }
 }
