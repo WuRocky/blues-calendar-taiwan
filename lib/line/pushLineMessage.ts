@@ -4,6 +4,13 @@ export interface LineMessageUriAction {
   uri: string
 }
 
+export interface LineMessagePostbackAction {
+  type: 'postback'
+  label: string
+  data: string
+  displayText?: string
+}
+
 export interface LineFlexText {
   type: 'text'
   text: string
@@ -23,7 +30,7 @@ export interface LineFlexButton {
   style?: 'primary' | 'secondary' | 'link'
   height?: 'sm' | 'md'
   color?: string
-  action: LineMessageUriAction
+  action: LineMessageUriAction | LineMessagePostbackAction
   flex?: number
 }
 
