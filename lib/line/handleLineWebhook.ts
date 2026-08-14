@@ -72,6 +72,10 @@ export async function handleLineWebhook({
 
       if (lineEvent.source?.type === 'group') {
         console.log('LINE webhook group event received')
+        console.log('[line-webhook] group event', {
+          groupId: lineEvent.source.groupId,
+          userId: lineEvent.source.userId
+        })
       }
 
       try {
