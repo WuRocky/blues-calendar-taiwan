@@ -2,7 +2,8 @@ import dayjs, { type Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { selectWeeklyEvents, type WeeklyEventQueryMode } from '~~/lib/events/weeklyEvents'
-import { getPublishedEventItems, type NotionConnectionConfig } from '~~/lib/notion'
+import type { NotionConnectionConfig } from '~~/lib/notion-connection'
+import { getPublishedEventItems } from '~~/lib/notion'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)

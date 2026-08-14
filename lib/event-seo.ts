@@ -2,6 +2,7 @@ import { buildEventDetailUrl, resolveSiteUrl } from '~~/lib/event-calendar'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import { isValidPublicEventSlug } from '~~/lib/events/eventSlug'
 import type { EventItem, EventStatus, EventType } from '~~/types/event'
 
 dayjs.extend(utc)
@@ -163,7 +164,7 @@ export function buildEventJsonLd(event: EventItem, siteUrl: string, locale: stri
 
 export function isValidPublicSitemapEvent(event: Pick<EventItem, 'slug' | 'published' | 'eventStatus' | 'timeStatus'>) {
   return event.published
-    && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(event.slug)
+    && isValidPublicEventSlug(event.slug)
     && ['scheduled', 'cancelled', 'postponed'].includes(event.eventStatus)
     && event.timeStatus !== 'invalid'
 }

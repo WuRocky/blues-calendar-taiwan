@@ -4,6 +4,7 @@
   "private": true,
   "packageManager": "yarn@1.22.22",
   "scripts": {
+    "backfill:event-slugs": "node scripts/backfill-event-slugs.mjs",
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
