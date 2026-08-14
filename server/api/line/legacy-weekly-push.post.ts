@@ -25,7 +25,8 @@ export default defineEventHandler(async (event) => {
   try {
     const result = await sendWeeklyLinePush({
       lineChannelAccessToken: config.lineLegacyChannelAccessToken,
-      lineGroupId: config.lineLegacyGroupId
+      lineGroupId: config.lineLegacyGroupId,
+      mode: 'remaining-week'
     })
 
     return {
