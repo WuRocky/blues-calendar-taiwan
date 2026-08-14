@@ -10,7 +10,8 @@ import { collectPaginatedNotionResults } from '~~/lib/notion-pagination'
 import type { BaseEventItem, EventItem, EventStatus, EventType } from '~~/types/event'
 
 const publicSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-const EVENTS_CACHE_TTL_SECONDS = 300
+const EVENTS_DATA_SOURCE_CACHE_TTL_SECONDS = 300
+const PUBLISHED_EVENTS_CACHE_TTL_SECONDS = 60
 
 export interface NotionConnectionConfig {
   token?: string
@@ -311,7 +312,7 @@ const getCachedEventsDataSourceId = defineCachedFunction(async (config: NotionCo
 }, {
   name: 'notion-events-data-source-id',
   group: 'notion',
-  maxAge: EVENTS_CACHE_TTL_SECONDS,
+  maxAge: EVENTS_DATA_SOURCE_CACHE_TTL_SECONDS,
   swr: false,
   getKey: (config: NotionConnectionConfig) => config.notionEventsDatabaseId
 })
@@ -423,7 +424,7 @@ const getCachedPublishedEventSource = defineCachedFunction(async (config: Notion
 }, {
   name: 'notion-published-events-source',
   group: 'notion',
-  maxAge: EVENTS_CACHE_TTL_SECONDS,
+  maxAge: PUBLISHED_EVENTS_CACHE_TTL_SECONDS,
   swr: false,
   getKey: (config: NotionConnectionConfig) => config.notionEventsDatabaseId
 })

@@ -17,6 +17,10 @@ export interface TaipeiDateRange {
   end: Dayjs
 }
 
+export type WeeklyEventQueryMode =
+  | 'full-week'
+  | 'remaining-week'
+
 export function getTaipeiWeekRange(now: Dayjs = dayjs()): TaipeiWeekRange {
   const current = now.tz(TAIPEI_TIMEZONE)
   const mondayOffset = (current.day() + 6) % 7
@@ -74,11 +78,16 @@ function compareWeeklyEvents(a: EventItem, b: EventItem) {
   return (a.slug || a.id).localeCompare(b.slug || b.id)
 }
 
-export function selectEventsInRange(events: readonly EventItem[], range: TaipeiDateRange) {
+function selectBaseWeeklyEvents(events: readonly EventItem[]) {
   return [...events]
     .filter(event => event.status.toLowerCase() === 'published')
+    .filter(event => event.eventStatus !== 'cancelled')
     .filter(event => event.timeStatus !== 'invalid')
     .filter(event => event.timeStatus !== 'unscheduled')
+}
+
+export function selectEventsInRange(events: readonly EventItem[], range: TaipeiDateRange) {
+  return selectBaseWeeklyEvents(events)
     .filter((event) => {
       const eventRange = getEventTimeRangeInTaipei(event)
       return Boolean(eventRange
@@ -88,7 +97,36 @@ export function selectEventsInRange(events: readonly EventItem[], range: TaipeiD
     .sort(compareWeeklyEvents)
 }
 
-export function selectWeeklyEvents(events: readonly EventItem[], now: Dayjs = dayjs()) {
+export function selectRemainingWeeklyEvents(events: readonly EventItem[], now: Dayjs = dayjs()) {
+  const nowInTaipei = now.tz(TAIPEI_TIMEZONE)
+  const range = getTaipeiWeekRange(nowInTaipei)
+
+  return selectBaseWeeklyEvents(events)
+    .filter((event) => {
+      const eventRange = getEventTimeRangeInTaipei(event)
+
+      if (!eventRange || eventRange.start.isAfter(range.end)) {
+        return false
+      }
+
+      if (event.endTime) {
+        return !eventRange.end.isBefore(nowInTaipei)
+      }
+
+      return !eventRange.start.isBefore(nowInTaipei)
+    })
+    .sort(compareWeeklyEvents)
+}
+
+export function selectWeeklyEvents(
+  events: readonly EventItem[],
+  now: Dayjs = dayjs(),
+  mode: WeeklyEventQueryMode = 'full-week'
+) {
+  if (mode === 'remaining-week') {
+    return selectRemainingWeeklyEvents(events, now)
+  }
+
   return selectEventsInRange(events, getTaipeiWeekRange(now))
 }
 
