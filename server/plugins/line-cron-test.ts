@@ -2,6 +2,7 @@ import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { defineNitroPlugin } from 'nitropack/runtime'
+import { ensureMissingEventSlugs } from '~~/lib/events/ensureMissingEventSlugs'
 import { getWeeklyEvents } from '~~/lib/events/getWeeklyEvents'
 import { getTaipeiWeekRange } from '~~/lib/events/weeklyEvents'
 import { TAIPEI_TIMEZONE } from '~~/lib/event-time'
@@ -12,6 +13,7 @@ dayjs.extend(utc)
 dayjs.extend(timezone)
 
 const TEST_CRON_EXPRESSION = '*/30 * * * *'
+const EVENT_SLUGS_CRON_EXPRESSION = '*/15 * * * *'
 
 interface LineCronEnvBindings {
   NUXT_NOTION_EVENTS_DATABASE_ID?: string
@@ -29,6 +31,37 @@ function getEnvBinding(env: unknown, key: keyof LineCronEnvBindings) {
   return typeof value === 'string' ? value : ''
 }
 
+async function handleEventSlugMaintenanceCron(env: unknown) {
+  const notionToken = getEnvBinding(env, 'NUXT_NOTION_TOKEN')
+  const notionEventsDatabaseId = getEnvBinding(env, 'NUXT_NOTION_EVENTS_DATABASE_ID')
+
+  if (!notionToken || !notionEventsDatabaseId) {
+    console.log('[event-slugs] skipped: missing configuration')
+    return
+  }
+
+  try {
+    const result = await ensureMissingEventSlugs({
+      notionConfig: {
+        notionToken,
+        notionEventsDatabaseId
+      }
+    })
+
+    if (result.updated.length === 0) {
+      console.log('[event-slugs] no missing slugs')
+      return
+    }
+
+    console.log(`[event-slugs] updated ${result.updated.length} events`)
+  } catch (error) {
+    console.error(
+      '[event-slugs] failed',
+      error instanceof Error ? error.message : 'Unknown error'
+    )
+  }
+}
+
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('cloudflare:scheduled', async (event) => {
     const actualCron = event.controller?.cron ?? null
@@ -40,6 +73,11 @@ export default defineNitroPlugin((nitroApp) => {
       cron: actualCron,
       scheduledTime,
     })
+
+    if (actualCron === EVENT_SLUGS_CRON_EXPRESSION) {
+      await handleEventSlugMaintenanceCron(event.env)
+      return
+    }
 
     if (actualCron !== TEST_CRON_EXPRESSION) {
       console.log('LINE weekly cron skipped: cron mismatch')
