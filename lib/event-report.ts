@@ -1,8 +1,8 @@
 import { buildEventDetailUrl, resolveSiteUrl } from '~~/lib/event-calendar'
+import { isValidPublicEventSlug } from '~~/lib/events/eventSlug'
 import type { EventItem } from '~~/types/event'
 
 const TALLY_HOST_PATTERN = /(^|\.)tally\.so$/i
-const PUBLIC_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export interface TallyFormUrlResolution {
   url: string | null
@@ -57,7 +57,7 @@ export function resolveTallyFormUrl(formUrl: string | null | undefined) {
 }
 
 function isValidPublicSlug(slug: string) {
-  return PUBLIC_SLUG_PATTERN.test(slug.trim())
+  return isValidPublicEventSlug(slug)
 }
 
 export function buildEventReportUrl(event: Pick<EventItem, 'name' | 'slug'>, formUrl: string, siteUrl: string) {

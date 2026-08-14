@@ -1,24 +1,19 @@
 import { createError, useRuntimeConfig } from '#imports'
-import { Client, isFullDatabase } from '@notionhq/client'
+import type { Client } from '@notionhq/client'
 import type { QueryDataSourceResponse } from '@notionhq/client/build/src/api-endpoints/data-sources'
 import type { ListBlockChildrenResponse } from '@notionhq/client/build/src/api-endpoints/blocks'
 import { z } from 'zod'
+import { PUBLIC_EVENT_SLUG_PATTERN } from '~~/lib/events/eventSlug'
 import { evaluateEventTime, normalizeNotionDateTime, shouldDisplayPublicEvent, sortEventsByDisplayPriority, withEventTimeStatus } from '~~/lib/event-time'
 import { selectDatedHomeCalendarEvents } from '~~/lib/home-events'
 import { normalizeEventStatus } from '~~/lib/event-status'
+import { createNotionClient, getEventsDataSourceId, resolveNotionConnectionConfig as resolveSharedNotionConnectionConfig, type NotionConnectionConfig } from '~~/lib/notion-connection'
 import { collectPaginatedNotionResults } from '~~/lib/notion-pagination'
 import type { BaseEventItem, EventItem, EventStatus, EventType } from '~~/types/event'
 
-const publicSlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+const publicSlugSchema = z.string().regex(PUBLIC_EVENT_SLUG_PATTERN)
 const EVENTS_DATA_SOURCE_CACHE_TTL_SECONDS = 300
 const PUBLISHED_EVENTS_CACHE_TTL_SECONDS = 60
-
-export interface NotionConnectionConfig {
-  token?: string
-  databaseId?: string
-  notionEventsDatabaseId: string
-  notionToken: string
-}
 
 const eventSchema = z.object({
   id: z.string().default(''),
@@ -53,14 +48,7 @@ const eventSchema = z.object({
 })
 
 function resolveNotionConnectionConfig(overrides?: Partial<NotionConnectionConfig>): NotionConnectionConfig {
-  const config = useRuntimeConfig()
-  const notionToken = overrides?.notionToken || overrides?.token || config.notionToken || ''
-  const notionEventsDatabaseId = overrides?.notionEventsDatabaseId || overrides?.databaseId || config.notionEventsDatabaseId || ''
-
-  return {
-    notionToken,
-    notionEventsDatabaseId
-  }
+  return resolveSharedNotionConnectionConfig(useRuntimeConfig(), overrides)
 }
 
 function getNotionClient(overrides?: Partial<NotionConnectionConfig>) {
@@ -73,9 +61,7 @@ function getNotionClient(overrides?: Partial<NotionConnectionConfig>) {
     })
   }
 
-  return new Client({
-    auth: config.notionToken
-  })
+  return createNotionClient(config.notionToken)
 }
 
 function normalizeEventType(value: string): EventType {
@@ -278,30 +264,6 @@ async function getPageDescription(client: Client, pageId: string) {
     })
     .filter(Boolean)
     .join('\n')
-}
-
-async function getEventsDataSourceId(client: Client, databaseId: string) {
-  const database = await client.databases.retrieve({
-    database_id: databaseId
-  })
-
-  if (!isFullDatabase(database)) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: `Unexpected partial Notion database response for: ${databaseId}`
-    })
-  }
-
-  const dataSourceId = database.data_sources?.[0]?.id
-
-  if (!dataSourceId) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: `No data source found for Notion database: ${databaseId}`
-    })
-  }
-
-  return dataSourceId
 }
 
 const getCachedEventsDataSourceId = defineCachedFunction(async (config: NotionConnectionConfig) => {
