@@ -17,6 +17,7 @@ const jiti = jitiFactory(import.meta.url, {
 
 const {
   selectWeeklyEvents,
+  selectRemainingWeeklyEvents,
   selectNextWeeklyEvents,
   selectDailyEvents,
   getTaipeiWeekRange,
@@ -90,15 +91,20 @@ const events = [
   makeEvent({ id: 'today-event', slug: 'today-event', eventType: 'social', name: 'Today Event', startTime: '2026-08-06T12:00:00.000Z', endTime: '2026-08-06T14:00:00.000Z', venueName: 'Today Venue', venueUrl: 'http://example.com/today-venue', registrationUrl: 'https://example.com/today-register', timeStatus: 'ongoing' }),
   makeEvent({ id: 'today-cross-day', slug: 'today-cross-day', eventType: 'event', name: 'Today Cross Day', startTime: '2026-08-05T16:30:00.000Z', endTime: '2026-08-06T01:00:00.000Z', venueName: 'Late Venue', timeStatus: 'ongoing' }),
   makeEvent({ id: 'unscheduled', slug: 'unscheduled', eventType: 'class', recurring: true, startTime: null, endTime: null, timeStatus: 'unscheduled' }),
-  makeEvent({ id: 'invalid', slug: 'invalid', eventType: 'event', startTime: null, endTime: null, timeStatus: 'invalid' })
+  makeEvent({ id: 'invalid', slug: 'invalid', eventType: 'event', startTime: null, endTime: null, timeStatus: 'invalid' }),
+  makeEvent({ id: 'cancelled', slug: 'cancelled', eventType: 'social', eventStatus: 'cancelled', startTime: '2026-08-08T12:00:00.000Z', endTime: '2026-08-08T14:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent({ id: 'ended-yesterday', slug: 'ended-yesterday', eventType: 'social', name: 'Ended Yesterday', startTime: '2026-08-05T12:00:00.000Z', endTime: '2026-08-05T14:00:00.000Z', timeStatus: 'ended' }),
+  makeEvent({ id: 'no-end-past-today', slug: 'no-end-past-today', eventType: 'social', name: 'No End Past Today', startTime: '2026-08-06T02:00:00.000Z', endTime: null, timeStatus: 'ongoing' })
 ]
 
 const weeklyEvents = selectWeeklyEvents(events, now)
-assert.deepEqual(weeklyEvents.map(event => event.id), ['cross-week', 'weekly-class', 'today-cross-day', 'today-event', 'no-end'])
+assert.deepEqual(weeklyEvents.map(event => event.id), ['cross-week', 'weekly-class', 'ended-yesterday', 'today-cross-day', 'no-end-past-today', 'today-event', 'no-end'])
+const remainingWeeklyEvents = selectRemainingWeeklyEvents(events, now)
+assert.deepEqual(remainingWeeklyEvents.map(event => event.id), ['cross-week', 'today-event', 'no-end'])
 const nextWeeklyEvents = selectNextWeeklyEvents(events, now)
 assert.deepEqual(nextWeeklyEvents.map(event => event.id), ['cross-next-week', 'next-week'])
 const dailyEvents = selectDailyEvents(events, now)
-assert.deepEqual(dailyEvents.map(event => event.id), ['cross-week', 'today-cross-day', 'today-event'])
+assert.deepEqual(dailyEvents.map(event => event.id), ['cross-week', 'today-cross-day', 'no-end-past-today', 'today-event'])
 assert.equal(weekRange.start.format('YYYY-MM-DD HH:mm:ss'), '2026-08-03 00:00:00')
 assert.equal(weekRange.end.format('YYYY-MM-DD HH:mm:ss'), '2026-08-09 23:59:59')
 assert.equal(nextWeekRange.start.format('YYYY-MM-DD HH:mm:ss'), '2026-08-10 00:00:00')
@@ -125,17 +131,19 @@ const weeklyMessage = formatWeeklyEventsFlexMessage({
 })
 
 assert.equal(weeklyMessage.type, 'flex')
-assert.equal(weeklyMessage.altText, '本週 Blues 活動 8/3(一) ～ 8/9(日)，共 5 場活動')
+assert.equal(weeklyMessage.altText, '本週 Blues 活動 8/3(一) ～ 8/9(日)，共 7 場活動')
 assert.equal(weeklyMessage.contents.type, 'carousel')
-assert.equal(weeklyMessage.contents.contents.length, 6)
+assert.equal(weeklyMessage.contents.contents.length, 8)
 assert.equal(weeklyMessage.contents.contents[0].body.contents[0].text, '💙 本週 Blues 活動')
 assert.equal(weeklyMessage.contents.contents[0].body.contents[1].text, '8/3(一) ～ 8/9(日)')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[2].text, '本週共 5 場活動')
+assert.equal(weeklyMessage.contents.contents[0].body.contents[2].text, '本週共 7 場活動')
 assert.equal(weeklyMessage.contents.contents[0].body.contents[3].text, '(一) Taipei Blues Social')
 assert.equal(weeklyMessage.contents.contents[0].body.contents[4].text, '(三) Blues 初級課')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[5].text, '(四) Today Cross Day')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[6].text, '(四) Today Event')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[7].text, '(日) No End Social')
+assert.equal(weeklyMessage.contents.contents[0].body.contents[5].text, '(三) Ended Yesterday')
+assert.equal(weeklyMessage.contents.contents[0].body.contents[6].text, '(四) Today Cross Day')
+assert.equal(weeklyMessage.contents.contents[0].body.contents[7].text, '(四) No End Past Today')
+assert.equal(weeklyMessage.contents.contents[0].body.contents[8].text, '(四) Today Event')
+assert.equal(weeklyMessage.contents.contents[0].body.contents[9].text, '(日) No End Social')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[0].text, '8/3（一） 00:00')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[1].contents[0].text, 'SOCIAL')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[2].text, 'Taipei Blues Social')
@@ -149,13 +157,13 @@ assert.equal(weeklyMessage.contents.contents[2].footer.contents[0].action.label,
 assert.equal(weeklyMessage.contents.contents[2].footer.contents[0].action.uri, 'https://example.com/venue')
 assert.equal(weeklyMessage.contents.contents[2].footer.contents[1].action.label, '活動資訊')
 assert.equal(weeklyMessage.contents.contents[2].footer.contents[1].action.uri, 'https://example.com/register')
-assert.equal(weeklyMessage.contents.contents[5].body.contents[0].text, '8/9（日） 19:30')
-assert.equal(weeklyMessage.contents.contents[5].body.contents[1].contents[0].text, 'SOCIAL')
-assert.equal(weeklyMessage.contents.contents[5].body.contents[2].text, 'No End Social')
-assert.equal(weeklyMessage.contents.contents[5].body.contents.length, 3)
-assert.equal(weeklyMessage.contents.contents[5].footer.layout, 'vertical')
-assert.equal(weeklyMessage.contents.contents[5].footer.contents[0].action.label, '查看地點')
-assert.equal(weeklyMessage.contents.contents[5].footer.contents[0].action.uri, 'https://example.com/no-end-venue')
+assert.equal(weeklyMessage.contents.contents[7].body.contents[0].text, '8/9（日） 19:30')
+assert.equal(weeklyMessage.contents.contents[7].body.contents[1].contents[0].text, 'SOCIAL')
+assert.equal(weeklyMessage.contents.contents[7].body.contents[2].text, 'No End Social')
+assert.equal(weeklyMessage.contents.contents[7].body.contents.length, 3)
+assert.equal(weeklyMessage.contents.contents[7].footer.layout, 'vertical')
+assert.equal(weeklyMessage.contents.contents[7].footer.contents[0].action.label, '查看地點')
+assert.equal(weeklyMessage.contents.contents[7].footer.contents[0].action.uri, 'https://example.com/no-end-venue')
 
 const organizerMessage = formatOrganizerPreviewMessage({
   weekStart: nextWeekRange.start,

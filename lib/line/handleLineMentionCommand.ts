@@ -103,7 +103,9 @@ export async function handleLineCommand(
     return false
   }
 
-  const { message } = await createWeeklyLineFlexMessage()
+  const { message } = await createWeeklyLineFlexMessage(undefined, {
+    mode: 'remaining-week'
+  })
 
   await replyLineMessage({
     channelAccessToken,
