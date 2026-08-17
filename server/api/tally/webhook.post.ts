@@ -16,6 +16,12 @@ const TALLY_INSTAGRAM_URL_FIELD_KEY = 'question_4vd8Yb'
 const TALLY_CONTACT_METHOD_FIELD_KEY = 'question_WPxvMP'
 const TALLY_RELATIONSHIP_FIELD_KEY = 'question_D5ggPq'
 const TALLY_CITY_FIELD_KEY = 'question_rVzz1l'
+const TALLY_CONFIRM_CHECKBOX_FIELD_KEYS = [
+  'question_9Obbyp',
+  'question_9Obbyp_5577729b-f718-4069-a3d6-6e5468f96363',
+  'question_eLkkl0',
+  'question_eLkkl0_8cf4b21e-493d-4801-9706-43a88d68fa85'
+] as const
 
 const INPUT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const INPUT_TIME_PATTERN = /^\d{2}:\d{2}$/
@@ -317,7 +323,13 @@ function mapEventTypeOption(value: string) {
 }
 
 function mapScheduleTypeOption(value: string) {
-  switch (value.trim().toLowerCase()) {
+  const normalizedValue = value
+    .split('｜')[0]
+    ?.split('|')[0]
+    ?.trim()
+    .toLowerCase() || ''
+
+  switch (normalizedValue) {
     case 'single':
       return 'Single'
     case 'weekly':
@@ -473,7 +485,8 @@ const TALLY_IGNORED_FIELD_KEYS = new Set([
   TALLY_PUBLISH_STATUS_FIELD_KEY,
   TALLY_DUPLICATE_REGISTRATION_URL_FIELD_KEY,
   TALLY_CONTACT_METHOD_FIELD_KEY,
-  TALLY_RELATIONSHIP_FIELD_KEY
+  TALLY_RELATIONSHIP_FIELD_KEY,
+  ...TALLY_CONFIRM_CHECKBOX_FIELD_KEYS
 ])
 
 function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: string | null, endDateTime: string | null): NotionPayloadBuildResult {
@@ -539,6 +552,10 @@ function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: strin
 
       if (fieldKey === TALLY_CONTACT_METHOD_FIELD_KEY || fieldKey === TALLY_RELATIONSHIP_FIELD_KEY) {
         reason = 'no matching Notion property by design'
+      }
+
+      if (TALLY_CONFIRM_CHECKBOX_FIELD_KEYS.includes(fieldKey as typeof TALLY_CONFIRM_CHECKBOX_FIELD_KEYS[number])) {
+        reason = 'confirmation checkbox ignored by design'
       }
 
       ignoredFields.push({
