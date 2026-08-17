@@ -1,3 +1,6 @@
+import { createError, useRuntimeConfig } from '#imports'
+import { createNotionClient, resolveNotionConnectionConfig } from '~~/lib/notion-connection'
+
 const TALLY_START_DATE_FIELD_KEY = 'question_PlVVe5'
 const TALLY_END_DATE_FIELD_KEY = 'question_ELyyEX'
 const TALLY_START_TIME_FIELD_KEY = 'question_aEVjGb'
@@ -99,6 +102,18 @@ interface NotionFieldMappingRule {
   fieldKeys?: string[]
   notionProperty: string
   transform: (field: TallyField) => NotionPropertyValue | null
+}
+
+function isTallyNotionWriteEnabled(value: unknown) {
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase())
+  }
+
+  return false
 }
 
 function normalizeLabel(value: string | undefined) {
@@ -641,6 +656,7 @@ function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: strin
 }
 
 export default defineEventHandler(async (event) => {
+  const runtimeConfig = useRuntimeConfig(event)
   const body = await readBody<TallyWebhookBody>(event)
   const fields = Array.isArray(body?.data?.fields) ? body.data.fields : []
   const startDate = getFieldValue(fields, TALLY_START_DATE_FIELD_KEY)
@@ -669,7 +685,63 @@ export default defineEventHandler(async (event) => {
     endDateTime
   }, null, 2))
   console.log('[Tally webhook] notion payload', JSON.stringify(notionPayload, null, 2))
-  console.log('[Tally webhook] Notion create skipped: payload review stage only')
+
+  if (notionPayload.unresolvedFields.length > 0) {
+    console.error('[Tally webhook] Notion create skipped: unresolved fields remain')
+
+    throw createError({
+      statusCode: 422,
+      statusMessage: 'Tally payload has unresolved fields'
+    })
+  }
+
+  const writeEnabled = isTallyNotionWriteEnabled(runtimeConfig.tallyNotionWriteEnabled)
+
+  if (!writeEnabled) {
+    console.log('[Tally webhook] Notion create skipped: payload review stage only')
+
+    return {
+      success: true
+    }
+  }
+
+  const notionConfig = resolveNotionConnectionConfig(runtimeConfig)
+
+  if (!notionConfig.notionToken || !notionConfig.notionEventsDatabaseId) {
+    console.error('[Tally webhook] Notion create failed: missing configuration')
+
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Missing Notion configuration'
+    })
+  }
+
+  try {
+    const client = createNotionClient(notionConfig.notionToken)
+    const response = await client.pages.create({
+      parent: {
+        database_id: notionConfig.notionEventsDatabaseId
+      },
+      properties: notionPayload.properties
+    })
+    const eventName = getTextValue(getFieldByKey(fields, TALLY_EVENT_NAME_FIELD_KEY)) || 'Untitled Event'
+
+    console.log('[Tally webhook] Notion page created', JSON.stringify({
+      pageId: response.id,
+      submissionId: body.data?.submissionId || null,
+      eventName
+    }, null, 2))
+  } catch (error) {
+    console.error(
+      '[Tally webhook] Notion create failed',
+      error instanceof Error ? error.message : 'Unknown error'
+    )
+
+    throw createError({
+      statusCode: 502,
+      statusMessage: 'Failed to create Notion page'
+    })
+  }
 
   return {
     success: true
