@@ -6,6 +6,13 @@ const STORAGE_NAMESPACE = 'data'
 const STORAGE_PREFIX = 'line:organizer-update'
 const REQUEST_EXPIRY_MINUTES = 10
 
+export type OrganizerRequestStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'cancelled'
+  | 'expired'
+
 interface OrganizerPendingBase {
   createdAt: string
   eventDate: string
@@ -13,6 +20,7 @@ interface OrganizerPendingBase {
   groupId: string
   id: string
   requestUserId: string
+  status: OrganizerRequestStatus
 }
 
 export interface OrganizerUpdateSelectionRequest extends OrganizerPendingBase {
@@ -44,8 +52,16 @@ export function getOrganizerUpdateRequestExpiryMinutes() {
   return REQUEST_EXPIRY_MINUTES
 }
 
+function isExpired(request: OrganizerPendingRequest) {
+  return new Date(request.expiresAt).getTime() <= Date.now()
+}
+
+async function saveOrganizerPendingRequest(request: OrganizerPendingRequest) {
+  await getOrganizerUpdateStorage().setItem(getStorageKey(request.id), request)
+}
+
 export async function createOrganizerSelectionRequest(
-  payload: Omit<OrganizerUpdateSelectionRequest, 'createdAt' | 'expiresAt' | 'id' | 'kind'>
+  payload: Omit<OrganizerUpdateSelectionRequest, 'createdAt' | 'expiresAt' | 'id' | 'kind' | 'status'>
 ) {
   const now = new Date()
   const request: OrganizerUpdateSelectionRequest = {
@@ -53,15 +69,16 @@ export async function createOrganizerSelectionRequest(
     kind: 'selection',
     id: crypto.randomUUID(),
     createdAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + REQUEST_EXPIRY_MINUTES * 60 * 1000).toISOString()
+    expiresAt: new Date(now.getTime() + REQUEST_EXPIRY_MINUTES * 60 * 1000).toISOString(),
+    status: 'pending'
   }
 
-  await getOrganizerUpdateStorage().setItem(getStorageKey(request.id), request)
+  await saveOrganizerPendingRequest(request)
   return request
 }
 
 export async function createOrganizerConfirmationRequest(
-  payload: Omit<OrganizerUpdateConfirmationRequest, 'createdAt' | 'expiresAt' | 'id' | 'kind'>
+  payload: Omit<OrganizerUpdateConfirmationRequest, 'createdAt' | 'expiresAt' | 'id' | 'kind' | 'status'>
 ) {
   const now = new Date()
   const request: OrganizerUpdateConfirmationRequest = {
@@ -69,10 +86,11 @@ export async function createOrganizerConfirmationRequest(
     kind: 'confirmation',
     id: crypto.randomUUID(),
     createdAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + REQUEST_EXPIRY_MINUTES * 60 * 1000).toISOString()
+    expiresAt: new Date(now.getTime() + REQUEST_EXPIRY_MINUTES * 60 * 1000).toISOString(),
+    status: 'pending'
   }
 
-  await getOrganizerUpdateStorage().setItem(getStorageKey(request.id), request)
+  await saveOrganizerPendingRequest(request)
   return request
 }
 
@@ -83,12 +101,36 @@ export async function getOrganizerPendingRequest(requestId: string) {
     return null
   }
 
-  if (new Date(request.expiresAt).getTime() <= Date.now()) {
-    await getOrganizerUpdateStorage().removeItem(getStorageKey(requestId))
-    return null
+  if (request.status === 'pending' && isExpired(request)) {
+    const expiredRequest: OrganizerPendingRequest = {
+      ...request,
+      status: 'expired'
+    }
+
+    await saveOrganizerPendingRequest(expiredRequest)
+    return expiredRequest
   }
 
   return request
+}
+
+export async function markOrganizerPendingRequestStatus(
+  requestId: string,
+  status: OrganizerRequestStatus
+) {
+  const request = await getOrganizerUpdateStorage().getItem<OrganizerPendingRequest>(getStorageKey(requestId))
+
+  if (!request) {
+    return null
+  }
+
+  const updatedRequest: OrganizerPendingRequest = {
+    ...request,
+    status
+  }
+
+  await saveOrganizerPendingRequest(updatedRequest)
+  return updatedRequest
 }
 
 export async function deleteOrganizerPendingRequest(requestId: string) {

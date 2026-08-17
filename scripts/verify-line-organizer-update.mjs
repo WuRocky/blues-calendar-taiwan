@@ -25,6 +25,8 @@ const {
 
 const mentionHandler = fs.readFileSync(new URL('../lib/line/handleLineMentionCommand.ts', import.meta.url), 'utf8')
 const webhookHandler = fs.readFileSync(new URL('../lib/line/handleLineWebhook.ts', import.meta.url), 'utf8')
+const organizerHandler = fs.readFileSync(new URL('../lib/line/handleLineOrganizerUpdate.ts', import.meta.url), 'utf8')
+const organizerState = fs.readFileSync(new URL('../lib/line/organizerUpdateState.ts', import.meta.url), 'utf8')
 
 const now = dayjs.tz('2026-08-14 12:00:00', 'YYYY-MM-DD HH:mm:ss', 'Asia/Taipei')
 const parsed = parseOrganizerEventUpdateCommand(`修改活動
@@ -78,5 +80,15 @@ assert.equal(patch.venueName, 'Sappho')
 assert.match(mentionHandler, /handleOrganizerUpdatePostback/)
 assert.match(mentionHandler, /handleOrganizerUpdateMessage/)
 assert.match(webhookHandler, /lineOrganizerGroupId/)
+assert.match(webhookHandler, /lineTestGroupId/)
+assert.match(organizerHandler, /lineOrganizerGroupId/)
+assert.match(organizerHandler, /lineTestGroupId/)
+assert.match(organizerHandler, /buildOrganizerUpdateCompletedMessage/)
+assert.match(organizerHandler, /buildOrganizerUpdateCancelledMessage\(\)/)
+assert.match(organizerHandler, /buildOrganizerUpdateExpiredMessage\(\)/)
+assert.match(organizerState, /status: 'pending'/)
+assert.match(organizerState, /'completed'/)
+assert.match(organizerState, /'cancelled'/)
+assert.match(organizerState, /'expired'/)
 
 console.log('verify-line-organizer-update: ok')

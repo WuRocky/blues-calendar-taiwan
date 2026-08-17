@@ -4,6 +4,7 @@ import timezone from 'dayjs/plugin/timezone'
 import { applyOrganizerEventUpdate, buildOrganizerEventUpdatePatch, findOrganizerEventsByNameAndDate } from '~~/lib/line/organizerEventUpdateNotion'
 import { isOrganizerUpdateCommand, parseOrganizerEventUpdateCommand } from '~~/lib/line/organizerEventUpdateParser'
 import {
+  buildOrganizerUpdateCompletedMessage,
   buildOrganizerConfirmationMessage,
   buildOrganizerSelectionMessage,
   buildOrganizerUpdateCancelledMessage,
@@ -11,15 +12,14 @@ import {
   buildOrganizerUpdateFailureMessage,
   buildOrganizerUpdateFormatHelpMessage,
   buildOrganizerUpdateNotFoundMessage,
-  buildOrganizerUpdateRestrictedMessage,
   buildOrganizerUpdateSuccessMessage,
   buildOrganizerUpdateUnauthorizedMessage
 } from '~~/lib/line/formatOrganizerEventUpdateMessages'
 import {
   createOrganizerConfirmationRequest,
   createOrganizerSelectionRequest,
-  deleteOrganizerPendingRequest,
-  getOrganizerPendingRequest
+  getOrganizerPendingRequest,
+  markOrganizerPendingRequestStatus
 } from '~~/lib/line/organizerUpdateState'
 import { replyLineMessage, type LinePushMessage } from '~~/lib/line/pushLineMessage'
 import type { NotionRuntimeConfig } from '~~/lib/notion-connection'
@@ -32,6 +32,7 @@ const ORGANIZER_POSTBACK_PREFIX = 'organizer-update'
 
 export interface OrganizerCommandRuntimeConfig extends NotionRuntimeConfig {
   lineOrganizerGroupId?: string
+  lineTestGroupId?: string
 }
 
 interface OrganizerPostbackEvent extends LineTextMessageEvent {
@@ -76,10 +77,17 @@ function getMentionCommand(event: LineTextMessageEvent) {
   return stripSelfMentions(text, mentionees)
 }
 
-function isOrganizerGroup(event: OrganizerPostbackEvent, organizerGroupId: string) {
-  return Boolean(organizerGroupId)
-    && event.source?.type === 'group'
-    && event.source.groupId === organizerGroupId
+function isAllowedOrganizerGroup(event: OrganizerPostbackEvent, config: OrganizerCommandRuntimeConfig) {
+  if (event.source?.type !== 'group') {
+    return false
+  }
+
+  const allowedGroupIds = [
+    config.lineOrganizerGroupId,
+    config.lineTestGroupId
+  ].filter((groupId): groupId is string => Boolean(groupId))
+
+  return allowedGroupIds.includes(event.source.groupId || '')
 }
 
 async function reply(channelAccessToken: string, replyToken: string | undefined, message: LinePushMessage) {
@@ -125,9 +133,8 @@ export async function handleOrganizerUpdateMessage(
     return false
   }
 
-  if (!isOrganizerGroup(event, config.lineOrganizerGroupId || '')) {
-    await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateRestrictedMessage())
-    return true
+  if (!isAllowedOrganizerGroup(event, config)) {
+    return false
   }
 
   const parsedCommand = parseOrganizerEventUpdateCommand(command)
@@ -199,9 +206,8 @@ export async function handleOrganizerUpdatePostback(
     return false
   }
 
-  if (!isOrganizerGroup(event, config.lineOrganizerGroupId || '')) {
-    await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateRestrictedMessage())
-    return true
+  if (!isAllowedOrganizerGroup(event, config)) {
+    return false
   }
 
   const pendingRequest = await getOrganizerPendingRequest(parsedPostback.requestId)
@@ -209,6 +215,27 @@ export async function handleOrganizerUpdatePostback(
   if (!pendingRequest) {
     console.log('[line-organizer] update expired')
     await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateExpiredMessage())
+    return true
+  }
+
+  if (pendingRequest.status === 'completed') {
+    await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateCompletedMessage())
+    return true
+  }
+
+  if (pendingRequest.status === 'cancelled') {
+    await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateCancelledMessage())
+    return true
+  }
+
+  if (pendingRequest.status === 'expired') {
+    console.log('[line-organizer] update expired')
+    await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateExpiredMessage())
+    return true
+  }
+
+  if (pendingRequest.status !== 'pending') {
+    await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateFailureMessage())
     return true
   }
 
@@ -221,7 +248,7 @@ export async function handleOrganizerUpdatePostback(
   }
 
   if (parsedPostback.action === 'cancel') {
-    await deleteOrganizerPendingRequest(pendingRequest.id)
+    await markOrganizerPendingRequestStatus(pendingRequest.id, 'cancelled')
     console.log('[line-organizer] update cancelled')
     await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateCancelledMessage())
     return true
@@ -253,7 +280,7 @@ export async function handleOrganizerUpdatePostback(
       requestUserId: pendingRequest.requestUserId
     })
 
-    await deleteOrganizerPendingRequest(pendingRequest.id)
+    await markOrganizerPendingRequestStatus(pendingRequest.id, 'completed')
     console.log('[line-organizer] update request created')
     await reply(channelAccessToken, event.replyToken, buildOrganizerConfirmationMessage(confirmationRequest))
     return true
@@ -261,11 +288,19 @@ export async function handleOrganizerUpdatePostback(
 
   if (pendingRequest.kind === 'confirmation' && parsedPostback.action === 'confirm') {
     try {
+      const lockedRequest = await markOrganizerPendingRequestStatus(pendingRequest.id, 'processing')
+
+      if (!lockedRequest || lockedRequest.status !== 'processing') {
+        await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateFailureMessage())
+        return true
+      }
+
       await applyOrganizerEventUpdate(pendingRequest.event.pageId, pendingRequest.patch, config)
-      await deleteOrganizerPendingRequest(pendingRequest.id)
+      await markOrganizerPendingRequestStatus(pendingRequest.id, 'completed')
       console.log('[line-organizer] update confirmed')
       await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateSuccessMessage(pendingRequest.event, pendingRequest.patch))
     } catch (error) {
+      await markOrganizerPendingRequestStatus(pendingRequest.id, 'pending')
       console.error(
         '[line-organizer] update failed',
         error instanceof Error ? error.message : 'Unknown error'
