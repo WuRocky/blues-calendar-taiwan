@@ -3,6 +3,19 @@ const TALLY_END_DATE_FIELD_KEY = 'question_ELyyEX'
 const TALLY_START_TIME_FIELD_KEY = 'question_aEVjGb'
 const TALLY_END_TIME_FIELD_KEY = 'question_6vo1RJ'
 const TALLY_EVENT_TYPE_FIELD_KEY = 'question_RREEad'
+const TALLY_EVENT_NAME_FIELD_KEY = 'question_lLJJ1B'
+const TALLY_SUMMARY_FIELD_KEY = 'question_GL884p'
+const TALLY_SCHEDULE_TYPE_FIELD_KEY = 'question_AD594o'
+const TALLY_PRICE_FIELD_KEY = 'question_ZlqqKz'
+const TALLY_COVER_IMAGE_URL_FIELD_KEY = 'question_qO00MY'
+const TALLY_LEVEL_FIELD_KEY = 'question_NLGGQB'
+const TALLY_PUBLISH_STATUS_FIELD_KEY = 'question_VVkL6E'
+const TALLY_PRIMARY_REGISTRATION_URL_FIELD_KEY = 'question_PYyXOe'
+const TALLY_DUPLICATE_REGISTRATION_URL_FIELD_KEY = 'question_x2OO1y'
+const TALLY_INSTAGRAM_URL_FIELD_KEY = 'question_4vd8Yb'
+const TALLY_CONTACT_METHOD_FIELD_KEY = 'question_WPxvMP'
+const TALLY_RELATIONSHIP_FIELD_KEY = 'question_D5ggPq'
+const TALLY_CITY_FIELD_KEY = 'question_rVzz1l'
 
 const INPUT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const INPUT_TIME_PATTERN = /^\d{2}:\d{2}$/
@@ -58,6 +71,12 @@ interface NotionPayloadBuildResult {
     sourceLabel: string
     value: unknown
   }>
+  omittedOptionalFields: Array<{
+    key: string
+    label: string
+    reason: string
+    value: unknown
+  }>
   properties: Record<string, NotionPropertyValue>
   unresolvedFields: Array<{
     key: string
@@ -69,6 +88,7 @@ interface NotionPayloadBuildResult {
 
 interface NotionFieldMappingRule {
   aliases: string[]
+  fieldKeys?: string[]
   notionProperty: string
   transform: (field: TallyField) => NotionPropertyValue | null
 }
@@ -109,6 +129,26 @@ function getBooleanValue(field: TallyField | null) {
   if (typeof field?.value === 'string') {
     const normalized = field.value.trim().toLowerCase()
     return ['true', 'yes', 'y', '1'].includes(normalized)
+  }
+
+  return false
+}
+
+function isEmptyFieldValue(field: TallyField | null) {
+  if (!field) {
+    return true
+  }
+
+  if (field.value === null || field.value === undefined) {
+    return true
+  }
+
+  if (typeof field.value === 'string') {
+    return field.value.trim().length === 0
+  }
+
+  if (Array.isArray(field.value)) {
+    return field.value.length === 0
   }
 
   return false
@@ -292,16 +332,19 @@ function mapScheduleTypeOption(value: string) {
 
 const TALLY_TO_NOTION_RULES: NotionFieldMappingRule[] = [
   {
+    fieldKeys: [TALLY_EVENT_NAME_FIELD_KEY],
     aliases: ['活動名稱', 'eventname', '名稱'],
     notionProperty: 'Name',
     transform: field => createTitleProperty(getTextValue(field))
   },
   {
+    fieldKeys: [TALLY_EVENT_TYPE_FIELD_KEY],
     aliases: ['活動類型', 'eventtype'],
     notionProperty: 'Event Type',
     transform: field => createSelectProperty(mapEventTypeOption(resolveSelectText(field)))
   },
   {
+    fieldKeys: [TALLY_SUMMARY_FIELD_KEY],
     aliases: ['活動簡介', 'summary', '簡介', '活動摘要'],
     notionProperty: 'Summary',
     transform: field => createRichTextProperty(getTextValue(field))
@@ -312,6 +355,7 @@ const TALLY_TO_NOTION_RULES: NotionFieldMappingRule[] = [
     transform: field => createRichTextProperty(getTextValue(field))
   },
   {
+    fieldKeys: [TALLY_SCHEDULE_TYPE_FIELD_KEY],
     aliases: ['時程類型', 'scheduletype', '活動日期類型'],
     notionProperty: 'Schedule Type',
     transform: field => createSelectProperty(mapScheduleTypeOption(resolveSelectText(field)))
@@ -337,6 +381,7 @@ const TALLY_TO_NOTION_RULES: NotionFieldMappingRule[] = [
     transform: field => createRichTextProperty(getTextValue(field))
   },
   {
+    fieldKeys: [TALLY_CITY_FIELD_KEY],
     aliases: ['城市', 'city'],
     notionProperty: 'City',
     transform: field => createSelectProperty(resolveSelectText(field) || getTextValue(field))
@@ -362,26 +407,31 @@ const TALLY_TO_NOTION_RULES: NotionFieldMappingRule[] = [
     transform: field => createNumberProperty(getNumberValue(field))
   },
   {
+    fieldKeys: [TALLY_PRICE_FIELD_KEY],
     aliases: ['費用', 'price', '費用說明'],
     notionProperty: 'Price',
     transform: field => createRichTextProperty(getTextValue(field))
   },
   {
+    fieldKeys: [TALLY_LEVEL_FIELD_KEY],
     aliases: ['程度', 'level', '適合程度'],
     notionProperty: 'Level',
     transform: field => createSelectProperty(resolveSelectText(field) || getTextValue(field))
   },
   {
+    fieldKeys: [TALLY_PRIMARY_REGISTRATION_URL_FIELD_KEY],
     aliases: ['報名連結', 'registrationurl', 'registrationurl/報名連結', 'registrationurl/報名連結（若有）'],
     notionProperty: 'Registration URL',
     transform: field => createUrlProperty(getTextValue(field))
   },
   {
-    aliases: ['instagram連結', 'instagramurl', 'instagram'],
+    fieldKeys: [TALLY_INSTAGRAM_URL_FIELD_KEY],
+    aliases: ['instagram連結', 'instagramurl', 'instagram', '活動instagramurl'],
     notionProperty: 'Instagram URL',
     transform: field => createUrlProperty(getTextValue(field))
   },
   {
+    fieldKeys: [TALLY_COVER_IMAGE_URL_FIELD_KEY],
     aliases: ['封面圖片連結', 'coverimageurl', '圖片連結', '活動圖片連結'],
     notionProperty: 'Cover Image URL',
     transform: field => createUrlProperty(getTextValue(field))
@@ -417,6 +467,13 @@ const TALLY_IGNORED_FIELD_ALIASES = new Set([
   '結束日期',
   '開始時間',
   '結束時間'
+])
+
+const TALLY_IGNORED_FIELD_KEYS = new Set([
+  TALLY_PUBLISH_STATUS_FIELD_KEY,
+  TALLY_DUPLICATE_REGISTRATION_URL_FIELD_KEY,
+  TALLY_CONTACT_METHOD_FIELD_KEY,
+  TALLY_RELATIONSHIP_FIELD_KEY
 ])
 
 function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: string | null, endDateTime: string | null): NotionPayloadBuildResult {
@@ -456,6 +513,7 @@ function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: strin
 
   const ignoredFields: NotionPayloadBuildResult['ignoredFields'] = []
   const mappedFields: NotionPayloadBuildResult['mappedFields'] = []
+  const omittedOptionalFields: NotionPayloadBuildResult['omittedOptionalFields'] = []
   const unresolvedFields: NotionPayloadBuildResult['unresolvedFields'] = []
   const mappedFieldKeys = new Set([
     TALLY_START_DATE_FIELD_KEY,
@@ -472,21 +530,45 @@ function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: strin
       continue
     }
 
-    if (TALLY_IGNORED_FIELD_ALIASES.has(normalizedLabel)) {
+    if (TALLY_IGNORED_FIELD_KEYS.has(fieldKey) || TALLY_IGNORED_FIELD_ALIASES.has(normalizedLabel)) {
+      let reason = 'handled by fixed value or combined datetime mapping'
+
+      if (fieldKey === TALLY_DUPLICATE_REGISTRATION_URL_FIELD_KEY) {
+        reason = 'duplicate registration field ignored in favor of question_PYyXOe'
+      }
+
+      if (fieldKey === TALLY_CONTACT_METHOD_FIELD_KEY || fieldKey === TALLY_RELATIONSHIP_FIELD_KEY) {
+        reason = 'no matching Notion property by design'
+      }
+
       ignoredFields.push({
         key: fieldKey,
         label: field.label || '',
-        reason: 'handled by fixed value or combined datetime mapping',
+        reason,
         value: field.value ?? null
       })
       continue
     }
 
-    const rule = fieldKey === TALLY_EVENT_TYPE_FIELD_KEY
-      ? TALLY_TO_NOTION_RULES.find(item => item.notionProperty === 'Event Type') || null
-      : TALLY_TO_NOTION_RULES.find(item => item.aliases.includes(normalizedLabel)) || null
+    const rule = TALLY_TO_NOTION_RULES.find((item) => {
+      if (item.fieldKeys?.includes(fieldKey)) {
+        return true
+      }
+
+      return item.aliases.includes(normalizedLabel)
+    }) || null
 
     if (!rule) {
+      if (isEmptyFieldValue(field)) {
+        omittedOptionalFields.push({
+          key: fieldKey,
+          label: field.label || '',
+          reason: 'optional field omitted',
+          value: field.value ?? null
+        })
+        continue
+      }
+
       unresolvedFields.push({
         key: fieldKey,
         label: field.label || '',
@@ -499,10 +581,20 @@ function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: strin
     const propertyValue = rule.transform(field)
 
     if (!propertyValue) {
+      if (isEmptyFieldValue(field)) {
+        omittedOptionalFields.push({
+          key: fieldKey,
+          label: field.label || '',
+          reason: 'optional field omitted',
+          value: field.value ?? null
+        })
+        continue
+      }
+
       unresolvedFields.push({
         key: fieldKey,
         label: field.label || '',
-        reason: 'mapped field has empty or invalid value',
+        reason: 'mapped field has invalid or unsupported value',
         value: field.value ?? null
       })
       continue
@@ -521,6 +613,7 @@ function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: strin
   return {
     ignoredFields,
     mappedFields,
+    omittedOptionalFields,
     properties,
     unresolvedFields
   }
