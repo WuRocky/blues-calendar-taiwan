@@ -16,6 +16,8 @@ const TALLY_INSTAGRAM_URL_FIELD_KEY = 'question_4vd8Yb'
 const TALLY_CONTACT_METHOD_FIELD_KEY = 'question_WPxvMP'
 const TALLY_RELATIONSHIP_FIELD_KEY = 'question_D5ggPq'
 const TALLY_CITY_FIELD_KEY = 'question_rVzz1l'
+const TALLY_RECURRING_TEXT_FIELD_KEY = 'question_VV22AJ'
+const TALLY_WEEKDAY_FIELD_KEY = 'question_djE89V'
 const TALLY_CONFIRM_CHECKBOX_FIELD_KEYS = [
   'question_9Obbyp',
   'question_9Obbyp_5577729b-f718-4069-a3d6-6e5468f96363',
@@ -409,7 +411,8 @@ const TALLY_TO_NOTION_RULES: NotionFieldMappingRule[] = [
     transform: field => createRichTextProperty(getTextValue(field))
   },
   {
-    aliases: ['星期', 'weekday', '星期幾'],
+    fieldKeys: [TALLY_WEEKDAY_FIELD_KEY],
+    aliases: ['星期', 'weekday', '星期幾', '固定或常態活動主要在星期幾舉行？'],
     notionProperty: 'Weekday',
     transform: field => createSelectProperty(resolveSelectText(field) || getTextValue(field))
   },
@@ -454,7 +457,8 @@ const TALLY_TO_NOTION_RULES: NotionFieldMappingRule[] = [
     transform: field => createCheckboxProperty(getBooleanValue(field))
   },
   {
-    aliases: ['常態課說明', 'recurringtext'],
+    fieldKeys: [TALLY_RECURRING_TEXT_FIELD_KEY],
+    aliases: ['常態課說明', 'recurringtext', '固定活動說明'],
     notionProperty: 'Recurring Text',
     transform: field => createRichTextProperty(getTextValue(field))
   },
