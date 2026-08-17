@@ -15,6 +15,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     notionToken: '',
     notionEventsDatabaseId: '',
+    tallyNotionWriteEnabled: false,
     lineGroupId: '',
     lineLegacyGroupId: '',
     lineLegacyChannelAccessToken: '',
