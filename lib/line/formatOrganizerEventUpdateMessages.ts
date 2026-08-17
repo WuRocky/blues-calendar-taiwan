@@ -107,14 +107,21 @@ export function buildOrganizerUpdateExpiredMessage(): LineTextMessage {
 export function buildOrganizerUpdateCancelledMessage(): LineTextMessage {
   return {
     type: 'text',
-    text: '已取消這次修改。'
+    text: '這次修改已經取消。'
+  }
+}
+
+export function buildOrganizerUpdateCompletedMessage(): LineTextMessage {
+  return {
+    type: 'text',
+    text: '這次修改已經完成。'
   }
 }
 
 export function buildOrganizerUpdateUnauthorizedMessage(): LineTextMessage {
   return {
     type: 'text',
-    text: '只有原本提出修改的人可以確認這次更新。'
+    text: '這次修改只能由提出修改的人確認。'
   }
 }
 

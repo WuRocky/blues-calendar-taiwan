@@ -70,6 +70,7 @@ export async function handleLineWebhook({
     const runtimeConfig = useRuntimeConfig(event)
     const organizerConfig: OrganizerCommandRuntimeConfig = {
       lineOrganizerGroupId: runtimeConfig.lineOrganizerGroupId,
+      lineTestGroupId: runtimeConfig.lineTestGroupId,
       notionEventsDatabaseId: runtimeConfig.notionEventsDatabaseId,
       notionToken: runtimeConfig.notionToken
     }
