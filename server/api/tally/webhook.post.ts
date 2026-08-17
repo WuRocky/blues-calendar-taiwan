@@ -25,13 +25,14 @@ interface TallyField {
 
 interface TallyWebhookBody {
   eventId?: string
-  responseId?: string
-  submissionId?: string
-  respondentId?: string
-  formId?: string
   createdAt?: string
   data?: {
     fields?: TallyField[]
+    responseId?: string
+    submissionId?: string
+    respondentId?: string
+    formId?: string
+    createdAt?: string
   }
 }
 
@@ -45,6 +46,12 @@ type NotionPropertyValue =
   | { number: number }
 
 interface NotionPayloadBuildResult {
+  ignoredFields: Array<{
+    key: string
+    label: string
+    reason: string
+    value: unknown
+  }>
   mappedFields: Array<{
     notionProperty: string
     sourceFieldKey: string
@@ -86,6 +93,14 @@ function getTextValue(field: TallyField | null) {
   return typeof field?.value === 'string' ? field.value.trim() : ''
 }
 
+function getStringArrayValue(field: TallyField | null) {
+  if (!Array.isArray(field?.value)) {
+    return []
+  }
+
+  return field.value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+}
+
 function getBooleanValue(field: TallyField | null) {
   if (typeof field?.value === 'boolean') {
     return field.value
@@ -125,6 +140,18 @@ function getOptionLabel(option: TallyFieldOption) {
 function resolveSelectText(field: TallyField | null) {
   if (!field) {
     return ''
+  }
+
+  const arrayValues = getStringArrayValue(field)
+
+  if (arrayValues.length > 0) {
+    return arrayValues.map((rawValue) => {
+      const matchedOption = field.options?.find((option) => {
+        return option.id === rawValue || option.value === rawValue
+      })
+
+      return matchedOption ? getOptionLabel(matchedOption).trim() : rawValue.trim()
+    }).filter(Boolean).join(', ')
   }
 
   if (typeof field.value === 'string') {
@@ -275,32 +302,32 @@ const TALLY_TO_NOTION_RULES: NotionFieldMappingRule[] = [
     transform: field => createSelectProperty(mapEventTypeOption(resolveSelectText(field)))
   },
   {
-    aliases: ['活動簡介', 'summary', '簡介'],
+    aliases: ['活動簡介', 'summary', '簡介', '活動摘要'],
     notionProperty: 'Summary',
     transform: field => createRichTextProperty(getTextValue(field))
   },
   {
-    aliases: ['活動內容', '完整活動介紹', 'fulldescription', '詳細介紹'],
+    aliases: ['活動內容', '完整活動介紹', 'fulldescription', '詳細介紹', '其他補充說明', '補充說明'],
     notionProperty: 'Full Description',
     transform: field => createRichTextProperty(getTextValue(field))
   },
   {
-    aliases: ['時程類型', 'scheduletype'],
+    aliases: ['時程類型', 'scheduletype', '活動日期類型'],
     notionProperty: 'Schedule Type',
     transform: field => createSelectProperty(mapScheduleTypeOption(resolveSelectText(field)))
   },
   {
-    aliases: ['指定日期', 'specificdates'],
+    aliases: ['指定日期', 'specificdates', '多個活動日期'],
     notionProperty: 'Specific Dates',
     transform: field => createRichTextProperty(getTextValue(field))
   },
   {
-    aliases: ['場地名稱', 'venuename', '場地'],
+    aliases: ['場地名稱', 'venuename', '場地', 'venue'],
     notionProperty: 'Venue Name',
     transform: field => createRichTextProperty(getTextValue(field))
   },
   {
-    aliases: ['場地連結', 'venueurl', '地點連結'],
+    aliases: ['場地連結', 'venueurl', '地點連結', '場地或地圖連結', '地圖連結'],
     notionProperty: 'Venue URL',
     transform: field => createUrlProperty(getTextValue(field))
   },
@@ -320,12 +347,12 @@ const TALLY_TO_NOTION_RULES: NotionFieldMappingRule[] = [
     transform: field => createSelectProperty(resolveSelectText(field) || getTextValue(field))
   },
   {
-    aliases: ['主辦單位', 'organizer'],
+    aliases: ['主辦單位', 'organizer', '主辦者/老師/組織名稱', '主辦者', '老師', '組織名稱'],
     notionProperty: 'Organizer',
     transform: field => createRichTextProperty(getTextValue(field))
   },
   {
-    aliases: ['星期', 'weekday'],
+    aliases: ['星期', 'weekday', '星期幾'],
     notionProperty: 'Weekday',
     transform: field => createSelectProperty(resolveSelectText(field) || getTextValue(field))
   },
@@ -335,17 +362,17 @@ const TALLY_TO_NOTION_RULES: NotionFieldMappingRule[] = [
     transform: field => createNumberProperty(getNumberValue(field))
   },
   {
-    aliases: ['費用', 'price'],
+    aliases: ['費用', 'price', '費用說明'],
     notionProperty: 'Price',
     transform: field => createRichTextProperty(getTextValue(field))
   },
   {
-    aliases: ['程度', 'level'],
+    aliases: ['程度', 'level', '適合程度'],
     notionProperty: 'Level',
     transform: field => createSelectProperty(resolveSelectText(field) || getTextValue(field))
   },
   {
-    aliases: ['報名連結', 'registrationurl'],
+    aliases: ['報名連結', 'registrationurl', 'registrationurl/報名連結', 'registrationurl/報名連結（若有）'],
     notionProperty: 'Registration URL',
     transform: field => createUrlProperty(getTextValue(field))
   },
@@ -355,7 +382,7 @@ const TALLY_TO_NOTION_RULES: NotionFieldMappingRule[] = [
     transform: field => createUrlProperty(getTextValue(field))
   },
   {
-    aliases: ['封面圖片連結', 'coverimageurl', '圖片連結'],
+    aliases: ['封面圖片連結', 'coverimageurl', '圖片連結', '活動圖片連結'],
     notionProperty: 'Cover Image URL',
     transform: field => createUrlProperty(getTextValue(field))
   },
@@ -380,6 +407,17 @@ const TALLY_TO_NOTION_RULES: NotionFieldMappingRule[] = [
     transform: field => createRichTextProperty(getTextValue(field))
   }
 ]
+
+const TALLY_IGNORED_FIELD_ALIASES = new Set([
+  'publishstatus',
+  'eventstatus',
+  'source',
+  '資料來源',
+  '開始日期',
+  '結束日期',
+  '開始時間',
+  '結束時間'
+])
 
 function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: string | null, endDateTime: string | null): NotionPayloadBuildResult {
   const properties: Record<string, NotionPropertyValue> = {
@@ -416,6 +454,7 @@ function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: strin
     }
   }
 
+  const ignoredFields: NotionPayloadBuildResult['ignoredFields'] = []
   const mappedFields: NotionPayloadBuildResult['mappedFields'] = []
   const unresolvedFields: NotionPayloadBuildResult['unresolvedFields'] = []
   const mappedFieldKeys = new Set([
@@ -430,6 +469,16 @@ function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: strin
     const normalizedLabel = normalizeLabel(field.label)
 
     if (!fieldKey || mappedFieldKeys.has(fieldKey)) {
+      continue
+    }
+
+    if (TALLY_IGNORED_FIELD_ALIASES.has(normalizedLabel)) {
+      ignoredFields.push({
+        key: fieldKey,
+        label: field.label || '',
+        reason: 'handled by fixed value or combined datetime mapping',
+        value: field.value ?? null
+      })
       continue
     }
 
@@ -470,6 +519,7 @@ function buildNotionPropertiesPayload(fields: TallyField[], startDateTime: strin
   }
 
   return {
+    ignoredFields,
     mappedFields,
     properties,
     unresolvedFields
@@ -490,11 +540,11 @@ export default defineEventHandler(async (event) => {
   console.log('[Tally webhook]', JSON.stringify(body, null, 2))
   console.log('[Tally webhook] metadata', JSON.stringify({
     eventId: body.eventId || null,
-    responseId: body.responseId || null,
-    submissionId: body.submissionId || null,
-    respondentId: body.respondentId || null,
-    formId: body.formId || null,
-    createdAt: body.createdAt || null
+    responseId: body.data?.responseId || null,
+    submissionId: body.data?.submissionId || null,
+    respondentId: body.data?.respondentId || null,
+    formId: body.data?.formId || null,
+    createdAt: body.data?.createdAt || body.createdAt || null
   }, null, 2))
   console.log('[Tally webhook] parsed timing', JSON.stringify({
     startDate,
