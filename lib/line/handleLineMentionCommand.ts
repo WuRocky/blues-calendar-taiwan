@@ -120,7 +120,8 @@ export async function handleLineCommand(
   }
 
   const { message } = await createWeeklyLineFlexMessage(undefined, {
-    mode: 'remaining-week'
+    mode: 'remaining-week',
+    siteUrl: config.siteUrl
   })
 
   await replyLineMessage({

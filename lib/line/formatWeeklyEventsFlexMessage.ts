@@ -2,6 +2,7 @@ import dayjs, { type Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { TAIPEI_TIMEZONE } from '~~/lib/event-time'
+import { getOrganizerLogoUrl } from '~~/lib/events/organizerLogo'
 import {
   formatWeekRangeInline,
   getEventTypeLabel,
@@ -23,6 +24,7 @@ const MAX_EVENT_BUBBLES = 11
 
 export interface FormatWeeklyEventsFlexMessageParams {
   events: readonly EventItem[]
+  siteUrl?: string
   weekEnd: Dayjs
   weekStart: Dayjs
 }
@@ -207,9 +209,50 @@ function createEmptyStateBubble(weekStart: Dayjs, weekEnd: Dayjs): LineFlexBubbl
   }
 }
 
-function createEventBubble(event: EventItem): LineFlexBubble {
+function createOrganizerContents(event: Pick<EventItem, 'organizer'>, siteUrl?: string): LineFlexBox | null {
+  const organizerName = event.organizer.trim()
+
+  if (!organizerName) {
+    return null
+  }
+
+  const organizerLogoUrl = siteUrl ? getOrganizerLogoUrl(organizerName, siteUrl) : null
+  const contents: LineFlexBox['contents'] = []
+
+  if (organizerLogoUrl) {
+    contents.push({
+      type: 'image',
+      url: organizerLogoUrl,
+      size: 'xxs',
+      aspectMode: 'cover',
+      aspectRatio: '1:1',
+      gravity: 'center',
+      cornerRadius: '8px',
+      flex: 0
+    })
+  }
+
+  contents.push({
+    type: 'text',
+    text: organizerName,
+    size: 'sm',
+    color: '#4B5563',
+    wrap: true,
+    flex: 1
+  })
+
+  return {
+    type: 'box',
+    layout: 'horizontal',
+    spacing: 'sm',
+    contents
+  }
+}
+
+function createEventBubble(event: EventItem, siteUrl?: string): LineFlexBubble {
   const footer = createFooterButtons(event)
   const venueName = event.venueName.trim()
+  const organizerContents = createOrganizerContents(event, siteUrl)
   const bodyContents: LineFlexBox['contents'] = [
     {
       type: 'text',
@@ -247,6 +290,10 @@ function createEventBubble(event: EventItem): LineFlexBubble {
     }
   ]
 
+  if (organizerContents) {
+    bodyContents.push(organizerContents)
+  }
+
   if (venueName) {
     bodyContents.push({
       type: 'text',
@@ -274,7 +321,8 @@ function createEventBubble(event: EventItem): LineFlexBubble {
 export function formatWeeklyEventsFlexMessage({
   weekStart,
   weekEnd,
-  events
+  events,
+  siteUrl
 }: FormatWeeklyEventsFlexMessageParams): LineFlexMessage {
   const altText = formatAltText(weekStart, weekEnd, events.length)
 
@@ -286,7 +334,7 @@ export function formatWeeklyEventsFlexMessage({
     }
   }
 
-  const eventBubbles = events.slice(0, MAX_EVENT_BUBBLES).map(createEventBubble)
+  const eventBubbles = events.slice(0, MAX_EVENT_BUBBLES).map(event => createEventBubble(event, siteUrl))
 
   return {
     type: 'flex',

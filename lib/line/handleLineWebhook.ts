@@ -72,7 +72,8 @@ export async function handleLineWebhook({
       lineOrganizerGroupId: runtimeConfig.lineOrganizerGroupId,
       lineTestGroupId: runtimeConfig.lineTestGroupId,
       notionEventsDatabaseId: runtimeConfig.notionEventsDatabaseId,
-      notionToken: runtimeConfig.notionToken
+      notionToken: runtimeConfig.notionToken,
+      siteUrl: runtimeConfig.public.siteUrl
     }
 
     for (const lineEvent of body?.events ?? []) {

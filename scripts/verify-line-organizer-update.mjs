@@ -22,7 +22,6 @@ const {
 const {
   buildOrganizerEventUpdatePatch
 } = jiti('../lib/line/organizerEventUpdateNotion.ts')
-
 const mentionHandler = fs.readFileSync(new URL('../lib/line/handleLineMentionCommand.ts', import.meta.url), 'utf8')
 const webhookHandler = fs.readFileSync(new URL('../lib/line/handleLineWebhook.ts', import.meta.url), 'utf8')
 const organizerHandler = fs.readFileSync(new URL('../lib/line/handleLineOrganizerUpdate.ts', import.meta.url), 'utf8')
@@ -86,9 +85,14 @@ assert.match(organizerHandler, /lineTestGroupId/)
 assert.match(organizerHandler, /buildOrganizerUpdateCompletedMessage/)
 assert.match(organizerHandler, /buildOrganizerUpdateCancelledMessage\(\)/)
 assert.match(organizerHandler, /buildOrganizerUpdateExpiredMessage\(\)/)
+assert.match(organizerHandler, /completed request reused/)
+assert.match(organizerHandler, /cancelled request reused/)
 assert.match(organizerState, /status: 'pending'/)
 assert.match(organizerState, /'completed'/)
 assert.match(organizerState, /'cancelled'/)
 assert.match(organizerState, /'expired'/)
+assert.match(organizerState, /TERMINAL_STATE_RETENTION_MINUTES = 60/)
+assert.match(organizerState, /REQUEST_EXPIRY_MINUTES = 10/)
+assert.match(organizerState, /getOrganizerUpdateTerminalStateRetentionMinutes/)
 
 console.log('verify-line-organizer-update: ok')
