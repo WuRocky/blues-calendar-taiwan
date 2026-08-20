@@ -126,6 +126,20 @@ interface LineReplyMessageBody {
   replyToken: string
 }
 
+export class LineMessageRequestError extends Error {
+  endpoint: 'push' | 'reply'
+  responseBody: string
+  status: number
+
+  constructor(endpoint: 'push' | 'reply', status: number, responseBody: string) {
+    super(`LINE ${endpoint} failed (${status}): ${responseBody}`)
+    this.name = 'LineMessageRequestError'
+    this.endpoint = endpoint
+    this.status = status
+    this.responseBody = responseBody
+  }
+}
+
 async function sendLineMessageRequest(
   endpoint: 'push' | 'reply',
   channelAccessToken: string,
@@ -145,7 +159,7 @@ async function sendLineMessageRequest(
   }
 
   const errorBody = await response.text()
-  throw new Error(`LINE ${endpoint} failed (${response.status}): ${errorBody}`)
+  throw new LineMessageRequestError(endpoint, response.status, errorBody)
 }
 
 export async function pushLineMessage({

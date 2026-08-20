@@ -227,7 +227,6 @@ function createOrganizerContents(event: Pick<EventItem, 'organizer'>, siteUrl?: 
       aspectMode: 'cover',
       aspectRatio: '1:1',
       gravity: 'center',
-      cornerRadius: '8px',
       flex: 0
     })
   }
