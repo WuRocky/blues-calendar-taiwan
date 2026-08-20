@@ -32,6 +32,7 @@ const ORGANIZER_POSTBACK_PREFIX = 'organizer-update'
 
 export interface OrganizerCommandRuntimeConfig extends NotionRuntimeConfig {
   lineOrganizerGroupId?: string
+  siteUrl?: string
   lineTestGroupId?: string
 }
 
@@ -219,11 +220,13 @@ export async function handleOrganizerUpdatePostback(
   }
 
   if (pendingRequest.status === 'completed') {
+    console.log('[line-organizer] completed request reused')
     await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateCompletedMessage())
     return true
   }
 
   if (pendingRequest.status === 'cancelled') {
+    console.log('[line-organizer] cancelled request reused')
     await reply(channelAccessToken, event.replyToken, buildOrganizerUpdateCancelledMessage())
     return true
   }

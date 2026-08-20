@@ -20,6 +20,7 @@ interface LineCronEnvBindings {
   NUXT_NOTION_TOKEN?: string
   NUXT_LINE_CHANNEL_ACCESS_TOKEN?: string
   NUXT_LINE_PUBLIC_GROUP_ID?: string
+  NUXT_PUBLIC_SITE_URL?: string
 }
 
 function getEnvBinding(env: unknown, key: keyof LineCronEnvBindings) {
@@ -98,6 +99,7 @@ export default defineNitroPlugin((nitroApp) => {
     const lineChannelAccessToken = getEnvBinding(env, 'NUXT_LINE_CHANNEL_ACCESS_TOKEN')
     const notionToken = getEnvBinding(env, 'NUXT_NOTION_TOKEN')
     const notionEventsDatabaseId = getEnvBinding(env, 'NUXT_NOTION_EVENTS_DATABASE_ID')
+    const siteUrl = getEnvBinding(env, 'NUXT_PUBLIC_SITE_URL')
 
     console.log('LINE weekly cron config status', {
       hasLinePublicGroupId: Boolean(linePublicGroupId),
@@ -123,6 +125,7 @@ export default defineNitroPlugin((nitroApp) => {
         weekStart: weekRange.start,
         weekEnd: weekRange.end,
         events,
+        siteUrl,
       })
 
       console.log('LINE weekly cron events loaded', {

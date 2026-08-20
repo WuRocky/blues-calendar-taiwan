@@ -10,6 +10,7 @@ dayjs.extend(timezone)
 
 export interface CreateWeeklyLineFlexMessageOptions {
   mode?: WeeklyEventQueryMode
+  siteUrl?: string
 }
 
 export async function createWeeklyLineFlexMessage(
@@ -23,7 +24,8 @@ export async function createWeeklyLineFlexMessage(
   const message = formatWeeklyEventsFlexMessage({
     weekStart: weekRange.start,
     weekEnd: weekRange.end,
-    events
+    events,
+    siteUrl: options.siteUrl
   })
 
   return {

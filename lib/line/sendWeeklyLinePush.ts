@@ -13,6 +13,7 @@ export interface WeeklyLinePushConfig {
   lineGroupId: string
   mode?: WeeklyEventQueryMode
   now?: Dayjs
+  siteUrl?: string
 }
 
 export interface WeeklyLinePushResult {
@@ -23,14 +24,16 @@ export async function sendWeeklyLinePush({
   lineGroupId,
   lineChannelAccessToken,
   mode = 'remaining-week',
-  now = dayjs()
+  now = dayjs(),
+  siteUrl
 }: WeeklyLinePushConfig): Promise<WeeklyLinePushResult> {
   if (!lineGroupId || !lineChannelAccessToken) {
     throw new Error('Missing LINE configuration')
   }
 
   const { eventCount, message } = await createWeeklyLineFlexMessage(now, {
-    mode
+    mode,
+    siteUrl
   })
 
   await pushLineMessage({

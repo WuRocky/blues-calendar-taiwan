@@ -25,6 +25,17 @@ export interface LineFlexText {
   flex?: number
 }
 
+export interface LineFlexImage {
+  type: 'image'
+  url: string
+  size?: string
+  aspectMode?: 'cover' | 'fit'
+  aspectRatio?: string
+  gravity?: 'top' | 'center' | 'bottom'
+  flex?: number
+  cornerRadius?: string
+}
+
 export interface LineFlexButton {
   type: 'button'
   style?: 'primary' | 'secondary' | 'link'
@@ -57,6 +68,7 @@ export interface LineFlexSeparator {
 
 export type LineFlexComponent =
   | LineFlexText
+  | LineFlexImage
   | LineFlexButton
   | LineFlexBox
   | LineFlexSeparator

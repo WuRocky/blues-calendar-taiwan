@@ -5,6 +5,7 @@ import type { OrganizerEventUpdateFields } from '~~/lib/line/organizerEventUpdat
 const STORAGE_NAMESPACE = 'data'
 const STORAGE_PREFIX = 'line:organizer-update'
 const REQUEST_EXPIRY_MINUTES = 10
+const TERMINAL_STATE_RETENTION_MINUTES = 60
 
 export type OrganizerRequestStatus =
   | 'pending'
@@ -52,8 +53,34 @@ export function getOrganizerUpdateRequestExpiryMinutes() {
   return REQUEST_EXPIRY_MINUTES
 }
 
+export function getOrganizerUpdateTerminalStateRetentionMinutes() {
+  return TERMINAL_STATE_RETENTION_MINUTES
+}
+
 function isExpired(request: OrganizerPendingRequest) {
   return new Date(request.expiresAt).getTime() <= Date.now()
+}
+
+function getExpiryIso(minutes: number) {
+  return new Date(Date.now() + minutes * 60 * 1000).toISOString()
+}
+
+function applyOrganizerPendingRequestStatus(
+  request: OrganizerPendingRequest,
+  status: OrganizerRequestStatus
+): OrganizerPendingRequest {
+  if (status === 'completed' || status === 'cancelled' || status === 'expired') {
+    return {
+      ...request,
+      status,
+      expiresAt: getExpiryIso(TERMINAL_STATE_RETENTION_MINUTES)
+    }
+  }
+
+  return {
+    ...request,
+    status
+  }
 }
 
 async function saveOrganizerPendingRequest(request: OrganizerPendingRequest) {
@@ -102,13 +129,15 @@ export async function getOrganizerPendingRequest(requestId: string) {
   }
 
   if (request.status === 'pending' && isExpired(request)) {
-    const expiredRequest: OrganizerPendingRequest = {
-      ...request,
-      status: 'expired'
-    }
+    const expiredRequest = applyOrganizerPendingRequestStatus(request, 'expired')
 
     await saveOrganizerPendingRequest(expiredRequest)
     return expiredRequest
+  }
+
+  if (request.status !== 'pending' && request.status !== 'processing' && isExpired(request)) {
+    await getOrganizerUpdateStorage().removeItem(getStorageKey(requestId))
+    return null
   }
 
   return request
@@ -124,10 +153,7 @@ export async function markOrganizerPendingRequestStatus(
     return null
   }
 
-  const updatedRequest: OrganizerPendingRequest = {
-    ...request,
-    status
-  }
+  const updatedRequest = applyOrganizerPendingRequestStatus(request, status)
 
   await saveOrganizerPendingRequest(updatedRequest)
   return updatedRequest
