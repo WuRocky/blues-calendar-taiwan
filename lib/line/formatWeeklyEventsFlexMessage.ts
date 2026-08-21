@@ -2,7 +2,7 @@ import dayjs, { type Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { TAIPEI_TIMEZONE } from '~~/lib/event-time'
-import { getOrganizerLogoUrl } from '~~/lib/events/organizerLogo'
+import { getOrganizerLogoUrls } from '~~/lib/events/organizerLogo'
 import {
   formatWeekRangeInline,
   getEventTypeLabel,
@@ -216,18 +216,24 @@ function createOrganizerContents(event: Pick<EventItem, 'organizer'>, siteUrl?: 
     return null
   }
 
-  const organizerLogoUrl = siteUrl ? getOrganizerLogoUrl(organizerName, siteUrl) : null
+  const organizerLogoUrls = siteUrl ? getOrganizerLogoUrls(organizerName, siteUrl) : []
   const contents: LineFlexBox['contents'] = []
 
-  if (organizerLogoUrl) {
+  if (organizerLogoUrls.length > 0) {
     contents.push({
-      type: 'image',
-      url: organizerLogoUrl,
-      size: 'xxs',
-      aspectMode: 'cover',
-      aspectRatio: '1:1',
-      gravity: 'center',
-      flex: 0
+      type: 'box',
+      layout: 'horizontal',
+      spacing: 'xs',
+      flex: 0,
+      contents: organizerLogoUrls.map((logo) => ({
+        type: 'image' as const,
+        url: logo.url,
+        size: '20px',
+        aspectMode: 'cover' as const,
+        aspectRatio: '1:1',
+        gravity: 'center' as const,
+        flex: 0
+      }))
     })
   }
 
@@ -237,6 +243,7 @@ function createOrganizerContents(event: Pick<EventItem, 'organizer'>, siteUrl?: 
     size: 'sm',
     color: '#4B5563',
     wrap: true,
+    gravity: 'center',
     flex: 1
   })
 
@@ -244,6 +251,7 @@ function createOrganizerContents(event: Pick<EventItem, 'organizer'>, siteUrl?: 
     type: 'box',
     layout: 'horizontal',
     spacing: 'sm',
+    margin: 'xs',
     contents
   }
 }
