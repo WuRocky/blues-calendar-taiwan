@@ -49,6 +49,7 @@ export interface LineFlexBox {
   type: 'box'
   layout: 'vertical' | 'horizontal' | 'baseline'
   contents: LineFlexComponent[]
+  flex?: number
   spacing?: string
   margin?: string
   paddingAll?: string

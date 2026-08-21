@@ -30,7 +30,7 @@ const { formatOrganizerPreviewMessage } = jiti('../lib/line/formatOrganizerPrevi
 const { formatDailyEventsMessage } = jiti('../lib/line/formatDailyEventsMessage.ts')
 const { verifyJobAuthorization } = jiti('../lib/line/verifyJobAuthorization.ts')
 const { resolveLinePushDate } = jiti('../lib/line/resolveLinePushDate.ts')
-const { getOrganizerLogoPath, getOrganizerLogoUrl } = jiti('../lib/events/organizerLogo.ts')
+const { getOrganizerLogoPath, getOrganizerLogoUrl, getOrganizerLogos, getOrganizerLogoUrls } = jiti('../lib/events/organizerLogo.ts')
 
 const testPushApi = fs.readFileSync(new URL('../server/api/line/test-push.post.ts', import.meta.url), 'utf8')
 const weeklyPushApi = fs.readFileSync(new URL('../server/api/line/weekly-push.post.ts', import.meta.url), 'utf8')
@@ -151,15 +151,15 @@ assert.equal(weeklyMessage.contents.contents[0].body.contents[9].text, '(日) No
 assert.equal(weeklyMessage.contents.contents[1].body.contents[0].text, '8/3（一） 00:00')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[1].contents[0].text, 'SOCIAL')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[2].text, 'Taipei Blues Social')
-assert.equal(weeklyMessage.contents.contents[1].body.contents[3].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/taplife.png')
-assert.equal('cornerRadius' in weeklyMessage.contents.contents[1].body.contents[3].contents[0], false)
+assert.equal(weeklyMessage.contents.contents[1].body.contents[3].contents[0].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/taplife.png')
+assert.equal('cornerRadius' in weeklyMessage.contents.contents[1].body.contents[3].contents[0].contents[0], false)
 assert.equal(weeklyMessage.contents.contents[1].body.contents[3].contents[1].text, 'TapLife')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[4].text, '📍 Dance Hall')
 assert.equal(weeklyMessage.contents.contents[2].body.contents[0].text, '8/5（三） 20:00')
 assert.equal(weeklyMessage.contents.contents[2].body.contents[1].contents[0].text, 'CLASS')
 assert.equal(weeklyMessage.contents.contents[2].body.contents[2].text, 'Blues 初級課')
-assert.equal(weeklyMessage.contents.contents[2].body.contents[3].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/blues20.png')
-assert.equal('cornerRadius' in weeklyMessage.contents.contents[2].body.contents[3].contents[0], false)
+assert.equal(weeklyMessage.contents.contents[2].body.contents[3].contents[0].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/blues20.png')
+assert.equal('cornerRadius' in weeklyMessage.contents.contents[2].body.contents[3].contents[0].contents[0], false)
 assert.equal(weeklyMessage.contents.contents[2].body.contents[3].contents[1].text, 'Blues20')
 assert.equal(weeklyMessage.contents.contents[2].body.contents[4].text, '📍 Space Mew')
 assert.equal(weeklyMessage.contents.contents[2].footer.layout, 'horizontal')
@@ -170,8 +170,8 @@ assert.equal(weeklyMessage.contents.contents[2].footer.contents[1].action.uri, '
 assert.equal(weeklyMessage.contents.contents[7].body.contents[0].text, '8/9（日） 19:30')
 assert.equal(weeklyMessage.contents.contents[7].body.contents[1].contents[0].text, 'SOCIAL')
 assert.equal(weeklyMessage.contents.contents[7].body.contents[2].text, 'No End Social')
-assert.equal(weeklyMessage.contents.contents[7].body.contents[3].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/find-your-blues.png')
-assert.equal('cornerRadius' in weeklyMessage.contents.contents[7].body.contents[3].contents[0], false)
+assert.equal(weeklyMessage.contents.contents[7].body.contents[3].contents[0].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/find-your-blues.png')
+assert.equal('cornerRadius' in weeklyMessage.contents.contents[7].body.contents[3].contents[0].contents[0], false)
 assert.equal(weeklyMessage.contents.contents[7].body.contents[3].contents[1].text, 'find-your-blues')
 assert.equal(weeklyMessage.contents.contents[7].body.contents.length, 4)
 assert.equal(weeklyMessage.contents.contents[7].footer.layout, 'vertical')
@@ -179,6 +179,10 @@ assert.equal(weeklyMessage.contents.contents[7].footer.contents[0].action.label,
 assert.equal(weeklyMessage.contents.contents[7].footer.contents[0].action.uri, 'https://example.com/no-end-venue')
 
 assert.equal(getOrganizerLogoPath('Blues20'), '/organizer-logos/blues20.png')
+assert.equal(getOrganizerLogoPath('Blues20 & 小白'), '/organizer-logos/blues20.png')
+assert.equal(getOrganizerLogoPath('小白 & Blues20'), '/organizer-logos/blues20.png')
+assert.equal(getOrganizerLogoPath('TapLife & Guest'), '/organizer-logos/taplife.png')
+assert.equal(getOrganizerLogoPath('find-your-blues x Guest'), '/organizer-logos/find-your-blues.png')
 assert.equal(getOrganizerLogoPath('find-your-blues'), '/organizer-logos/find-your-blues.png')
 assert.equal(getOrganizerLogoPath('TapLife'), '/organizer-logos/taplife.png')
 assert.equal(getOrganizerLogoPath(' Unknown Organizer '), null)
@@ -186,6 +190,62 @@ assert.equal(getOrganizerLogoPath(''), null)
 assert.equal(getOrganizerLogoUrl('Blues20', siteUrl), 'https://blues-calendar-taiwan.example.com/organizer-logos/blues20.png')
 assert.equal(getOrganizerLogoUrl('TapLife', 'https://blues-calendar-taiwan.example.com'), 'https://blues-calendar-taiwan.example.com/organizer-logos/taplife.png')
 assert.equal(getOrganizerLogoUrl('Unknown Organizer', siteUrl), null)
+assert.deepEqual(
+  getOrganizerLogos('Blues20 & TapLife').map(logo => logo.organizer),
+  ['Blues20', 'TapLife']
+)
+assert.deepEqual(
+  getOrganizerLogoUrls('Blues20 & TapLife', siteUrl).map(logo => logo.url),
+  [
+    'https://blues-calendar-taiwan.example.com/organizer-logos/blues20.png',
+    'https://blues-calendar-taiwan.example.com/organizer-logos/taplife.png'
+  ]
+)
+assert.equal(getOrganizerLogos('Unknown Organizer').length, 0)
+
+const combinedOrganizerMessage = formatWeeklyEventsFlexMessage({
+  weekStart: weekRange.start,
+  weekEnd: weekRange.end,
+  events: [
+    makeEvent({
+      id: 'combined-organizer',
+      slug: 'combined-organizer',
+      eventType: 'social',
+      name: 'Combined Organizer Event',
+      startTime: '2026-08-08T12:00:00.000Z',
+      endTime: '2026-08-08T14:00:00.000Z',
+      organizer: 'Blues20 & TapLife'
+    })
+  ],
+  siteUrl
+})
+
+assert.equal(combinedOrganizerMessage.contents.type, 'carousel')
+assert.equal(combinedOrganizerMessage.contents.contents[1].body.contents[3].contents[0].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/blues20.png')
+assert.equal(combinedOrganizerMessage.contents.contents[1].body.contents[3].contents[0].contents[1].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/taplife.png')
+assert.equal(combinedOrganizerMessage.contents.contents[1].body.contents[3].contents[1].text, 'Blues20 & TapLife')
+
+const unknownOrganizerMessage = formatWeeklyEventsFlexMessage({
+  weekStart: weekRange.start,
+  weekEnd: weekRange.end,
+  events: [
+    makeEvent({
+      id: 'unknown-organizer',
+      slug: 'unknown-organizer',
+      eventType: 'social',
+      name: 'Unknown Organizer Event',
+      startTime: '2026-08-08T12:00:00.000Z',
+      endTime: '2026-08-08T14:00:00.000Z',
+      organizer: 'Unknown Organizer'
+    })
+  ],
+  siteUrl
+})
+
+assert.equal(unknownOrganizerMessage.contents.type, 'carousel')
+assert.equal(unknownOrganizerMessage.contents.contents[1].body.contents[3].type, 'box')
+assert.equal(unknownOrganizerMessage.contents.contents[1].body.contents[3].contents.length, 1)
+assert.equal(unknownOrganizerMessage.contents.contents[1].body.contents[3].contents[0].text, 'Unknown Organizer')
 
 const organizerMessage = formatOrganizerPreviewMessage({
   weekStart: nextWeekRange.start,
