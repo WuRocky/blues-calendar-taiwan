@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import { handleLineCommand } from '~~/lib/line/handleLineMentionCommand'
 import type { OrganizerCommandRuntimeConfig } from '~~/lib/line/handleLineOrganizerUpdate'
+import type { LineBotContext } from '~~/lib/line/weeklyCommandRouting'
 import { authorizeLineWebhook } from '~~/lib/line/verifyLineSignature'
 
 export interface LineWebhookSource {
@@ -36,6 +37,7 @@ export interface LineWebhookBody {
 }
 
 export interface HandleLineWebhookParams {
+  botContext: LineBotContext
   channelAccessToken: string
   channelSecret: string
   event: H3Event
@@ -43,6 +45,7 @@ export interface HandleLineWebhookParams {
 
 export async function handleLineWebhook({
   event,
+  botContext,
   channelAccessToken,
   channelSecret
 }: HandleLineWebhookParams) {
@@ -91,7 +94,7 @@ export async function handleLineWebhook({
       }
 
       try {
-        await handleLineCommand(lineEvent, channelAccessToken, organizerConfig)
+        await handleLineCommand(lineEvent, channelAccessToken, organizerConfig, botContext)
       } catch (error) {
         console.error(
           'Failed to handle LINE command:',

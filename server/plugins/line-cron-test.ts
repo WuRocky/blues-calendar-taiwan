@@ -2,24 +2,24 @@ import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { defineNitroPlugin } from 'nitropack/runtime'
-import { ensureMissingEventSlugs } from '~~/lib/events/ensureMissingEventSlugs'
-import { getWeeklyEvents } from '~~/lib/events/getWeeklyEvents'
-import { getTaipeiWeekRange } from '~~/lib/events/weeklyEvents'
 import { TAIPEI_TIMEZONE } from '~~/lib/event-time'
-import { formatWeeklyEventsFlexMessage } from '~~/lib/line/formatWeeklyEventsFlexMessage'
-import { pushLineMessage } from '~~/lib/line/pushLineMessage'
+import { ensureMissingEventSlugs } from '~~/lib/events/ensureMissingEventSlugs'
+import { sendWeeklyLinePush } from '~~/lib/line/sendWeeklyLinePush'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
-const TEST_CRON_EXPRESSION = '*/30 * * * *'
+const PRODUCTION_WEEKLY_CRON_EXPRESSION = '0 2 * * 1'
+const TEST_NEXT_WEEKLY_CRON_EXPRESSION = '0 2 * * 0'
 const EVENT_SLUGS_CRON_EXPRESSION = '*/15 * * * *'
 
 interface LineCronEnvBindings {
   NUXT_NOTION_EVENTS_DATABASE_ID?: string
   NUXT_NOTION_TOKEN?: string
   NUXT_LINE_CHANNEL_ACCESS_TOKEN?: string
+  NUXT_LINE_TEST_CHANNEL_ACCESS_TOKEN?: string
   NUXT_LINE_PUBLIC_GROUP_ID?: string
+  NUXT_LINE_TEST_GROUP_ID?: string
   NUXT_PUBLIC_SITE_URL?: string
 }
 
@@ -30,6 +30,14 @@ function getEnvBinding(env: unknown, key: keyof LineCronEnvBindings) {
 
   const value = Reflect.get(env, key)
   return typeof value === 'string' ? value : ''
+}
+
+interface WeeklyLineCronConfig {
+  groupId: string
+  lineChannelAccessToken: string
+  notionEventsDatabaseId: string
+  notionToken: string
+  siteUrl?: string
 }
 
 async function handleEventSlugMaintenanceCron(env: unknown) {
@@ -63,6 +71,51 @@ async function handleEventSlugMaintenanceCron(env: unknown) {
   }
 }
 
+async function handleWeeklyLineCron(
+  cronLabel: string,
+  scheduledTime: number,
+  config: WeeklyLineCronConfig,
+  mode: 'full-week' | 'next-week'
+) {
+  if (!config.groupId || !config.lineChannelAccessToken || !config.notionToken || !config.notionEventsDatabaseId) {
+    console.log(`${cronLabel} skipped: missing configuration`)
+    return
+  }
+
+  const now = dayjs(scheduledTime).tz(TAIPEI_TIMEZONE)
+
+  try {
+    console.log(`${cronLabel} push starting`, {
+      mode,
+      scheduledTime
+    })
+
+    const result = await sendWeeklyLinePush({
+      lineChannelAccessToken: config.lineChannelAccessToken,
+      lineGroupId: config.groupId,
+      mode,
+      notionConfig: {
+        token: config.notionToken,
+        databaseId: config.notionEventsDatabaseId
+      },
+      now,
+      siteUrl: config.siteUrl
+    })
+
+    console.log(`${cronLabel} push sent`, {
+      eventCount: result.eventCount,
+      mode
+    })
+  } catch (error) {
+    console.error(
+      `${cronLabel} failed`,
+      error instanceof Error ? error.message : 'Unknown error'
+    )
+
+    throw error
+  }
+}
+
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('cloudflare:scheduled', async (event) => {
     const actualCron = event.controller?.cron ?? null
@@ -80,76 +133,79 @@ export default defineNitroPlugin((nitroApp) => {
       return
     }
 
-    if (actualCron !== TEST_CRON_EXPRESSION) {
-      console.log('LINE weekly cron skipped: cron mismatch')
-      console.log('LINE weekly cron cron mismatch', {
-        receivedCron: actualCron,
-        expectedCron: TEST_CRON_EXPRESSION,
-      })
-      return
-    }
-
-    console.log('LINE weekly cron started', {
-      cron: actualCron,
-      scheduledTime,
-    })
-
     const { env } = event
     const linePublicGroupId = getEnvBinding(env, 'NUXT_LINE_PUBLIC_GROUP_ID')
     const lineChannelAccessToken = getEnvBinding(env, 'NUXT_LINE_CHANNEL_ACCESS_TOKEN')
+    const lineTestGroupId = getEnvBinding(env, 'NUXT_LINE_TEST_GROUP_ID')
+    const lineTestChannelAccessToken = getEnvBinding(env, 'NUXT_LINE_TEST_CHANNEL_ACCESS_TOKEN')
     const notionToken = getEnvBinding(env, 'NUXT_NOTION_TOKEN')
     const notionEventsDatabaseId = getEnvBinding(env, 'NUXT_NOTION_EVENTS_DATABASE_ID')
     const siteUrl = getEnvBinding(env, 'NUXT_PUBLIC_SITE_URL')
 
-    console.log('LINE weekly cron config status', {
-      hasLinePublicGroupId: Boolean(linePublicGroupId),
-      hasLineChannelAccessToken: Boolean(lineChannelAccessToken),
-      hasNotionToken: Boolean(notionToken),
-      hasNotionDatabaseId: Boolean(notionEventsDatabaseId),
-    })
+    if (actualCron === PRODUCTION_WEEKLY_CRON_EXPRESSION) {
+      console.log('LINE production weekly cron started', {
+        cron: actualCron,
+        scheduledTime
+      })
 
-    if (!linePublicGroupId || !lineChannelAccessToken || !notionToken || !notionEventsDatabaseId) {
-      console.log('LINE weekly cron skipped: missing configuration')
+      console.log('LINE production weekly cron config status', {
+        hasLinePublicGroupId: Boolean(linePublicGroupId),
+        hasLineChannelAccessToken: Boolean(lineChannelAccessToken),
+        hasNotionToken: Boolean(notionToken),
+        hasNotionDatabaseId: Boolean(notionEventsDatabaseId)
+      })
+
+      await handleWeeklyLineCron(
+        'LINE production weekly cron',
+        event.controller.scheduledTime,
+        {
+          groupId: linePublicGroupId,
+          lineChannelAccessToken,
+          notionToken,
+          notionEventsDatabaseId,
+          siteUrl
+        },
+        'full-week'
+      )
       return
     }
 
-    const now = dayjs(event.controller.scheduledTime).tz(TAIPEI_TIMEZONE)
-
-    try {
-      const events = await getWeeklyEvents(now, {
-        token: notionToken,
-        databaseId: notionEventsDatabaseId,
-      })
-      const weekRange = getTaipeiWeekRange(now)
-      const message = formatWeeklyEventsFlexMessage({
-        weekStart: weekRange.start,
-        weekEnd: weekRange.end,
-        events,
-        siteUrl,
+    if (actualCron === TEST_NEXT_WEEKLY_CRON_EXPRESSION) {
+      console.log('LINE test next-week cron started', {
+        cron: actualCron,
+        scheduledTime
       })
 
-      console.log('LINE weekly cron events loaded', {
-        eventCount: events.length,
+      console.log('LINE test next-week cron config status', {
+        hasLineTestGroupId: Boolean(lineTestGroupId),
+        hasLineTestChannelAccessToken: Boolean(lineTestChannelAccessToken),
+        hasNotionToken: Boolean(notionToken),
+        hasNotionDatabaseId: Boolean(notionEventsDatabaseId)
       })
 
-      console.log('LINE weekly cron push starting')
-
-      await pushLineMessage({
-        channelAccessToken: lineChannelAccessToken,
-        targetId: linePublicGroupId,
-        messages: [message],
-      })
-
-      console.log('LINE weekly cron push sent', {
-        eventCount: events.length,
-      })
-    } catch (error) {
-      console.error(
-        'LINE weekly cron failed',
-        error instanceof Error ? error.message : 'Unknown error',
+      await handleWeeklyLineCron(
+        'LINE test next-week cron',
+        event.controller.scheduledTime,
+        {
+          groupId: lineTestGroupId,
+          lineChannelAccessToken: lineTestChannelAccessToken,
+          notionToken,
+          notionEventsDatabaseId,
+          siteUrl
+        },
+        'next-week'
       )
-
-      throw error
+      return
     }
+
+    console.log('LINE weekly cron skipped: cron mismatch')
+    console.log('LINE weekly cron cron mismatch', {
+      receivedCron: actualCron,
+      expectedCrons: [
+        PRODUCTION_WEEKLY_CRON_EXPRESSION,
+        TEST_NEXT_WEEKLY_CRON_EXPRESSION,
+        EVENT_SLUGS_CRON_EXPRESSION
+      ],
+    })
   })
 })

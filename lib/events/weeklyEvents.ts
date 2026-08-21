@@ -20,6 +20,8 @@ export interface TaipeiDateRange {
 export type WeeklyEventQueryMode =
   | 'full-week'
   | 'remaining-week'
+  | 'next-week'
+  | 'remaining-and-next-week'
 
 export function getTaipeiWeekRange(now: Dayjs = dayjs()): TaipeiWeekRange {
   const current = now.tz(TAIPEI_TIMEZONE)
@@ -125,6 +127,24 @@ export function selectWeeklyEvents(
 ) {
   if (mode === 'remaining-week') {
     return selectRemainingWeeklyEvents(events, now)
+  }
+
+  if (mode === 'next-week') {
+    return selectNextWeeklyEvents(events, now)
+  }
+
+  if (mode === 'remaining-and-next-week') {
+    const mergedEvents = new Map<string, EventItem>()
+
+    for (const event of selectRemainingWeeklyEvents(events, now)) {
+      mergedEvents.set(event.id, event)
+    }
+
+    for (const event of selectNextWeeklyEvents(events, now)) {
+      mergedEvents.set(event.id, event)
+    }
+
+    return [...mergedEvents.values()].sort(compareWeeklyEvents)
   }
 
   return selectEventsInRange(events, getTaipeiWeekRange(now))

@@ -103,8 +103,11 @@ const weeklyEvents = selectWeeklyEvents(events, now)
 assert.deepEqual(weeklyEvents.map(event => event.id), ['cross-week', 'weekly-class', 'ended-yesterday', 'today-cross-day', 'no-end-past-today', 'today-event', 'no-end'])
 const remainingWeeklyEvents = selectRemainingWeeklyEvents(events, now)
 assert.deepEqual(remainingWeeklyEvents.map(event => event.id), ['cross-week', 'today-event', 'no-end'])
+const remainingAndNextWeeklyEvents = selectWeeklyEvents(events, now, 'remaining-and-next-week')
+assert.deepEqual(remainingAndNextWeeklyEvents.map(event => event.id), ['cross-week', 'today-event', 'no-end', 'cross-next-week', 'next-week'])
 const nextWeeklyEvents = selectNextWeeklyEvents(events, now)
 assert.deepEqual(nextWeeklyEvents.map(event => event.id), ['cross-next-week', 'next-week'])
+assert.deepEqual(selectWeeklyEvents(events, now, 'next-week').map(event => event.id), ['cross-next-week', 'next-week'])
 const dailyEvents = selectDailyEvents(events, now)
 assert.deepEqual(dailyEvents.map(event => event.id), ['cross-week', 'today-cross-day', 'no-end-past-today', 'today-event'])
 assert.equal(weekRange.start.format('YYYY-MM-DD HH:mm:ss'), '2026-08-03 00:00:00')
@@ -177,6 +180,32 @@ assert.equal(weeklyMessage.contents.contents[7].body.contents.length, 4)
 assert.equal(weeklyMessage.contents.contents[7].footer.layout, 'vertical')
 assert.equal(weeklyMessage.contents.contents[7].footer.contents[0].action.label, '查看地點')
 assert.equal(weeklyMessage.contents.contents[7].footer.contents[0].action.uri, 'https://example.com/no-end-venue')
+
+const nextWeekMessage = formatWeeklyEventsFlexMessage({
+  weekStart: nextWeekRange.start,
+  weekEnd: nextWeekRange.end,
+  events: nextWeeklyEvents,
+  siteUrl,
+  periodLabel: '下週'
+})
+
+assert.equal(nextWeekMessage.altText, '下週 Blues 活動 8/10(一) ～ 8/16(日)，共 2 場活動')
+assert.equal(nextWeekMessage.contents.type, 'carousel')
+assert.equal(nextWeekMessage.contents.contents[0].body.contents[0].text, '💙 下週 Blues 活動')
+assert.equal(nextWeekMessage.contents.contents[0].body.contents[2].text, '下週共 2 場活動')
+
+const recentMessage = formatWeeklyEventsFlexMessage({
+  weekStart: now.startOf('day'),
+  weekEnd: nextWeekRange.end,
+  events: remainingAndNextWeeklyEvents,
+  siteUrl,
+  periodLabel: '近期'
+})
+
+assert.equal(recentMessage.altText, '近期 Blues 活動 8/6(四) ～ 8/16(日)，共 5 場活動')
+assert.equal(recentMessage.contents.type, 'carousel')
+assert.equal(recentMessage.contents.contents[0].body.contents[0].text, '💙 近期 Blues 活動')
+assert.equal(recentMessage.contents.contents[0].body.contents[2].text, '近期共 5 場活動')
 
 assert.equal(getOrganizerLogoPath('Blues20'), '/organizer-logos/blues20.png')
 assert.equal(getOrganizerLogoPath('Blues20 & 小白'), '/organizer-logos/blues20.png')
@@ -300,7 +329,7 @@ assert.equal(verifyJobAuthorization({
 
 assert.match(testPushApi, /targetId: config\.lineLegacyGroupId/)
 assert.match(organizerPreviewApi, /lineOrganizerGroupId: config\.lineOrganizerGroupId/)
-assert.match(weeklyPushApi, /lineGroupId: config\.lineGroupId/)
+assert.match(weeklyPushApi, /lineGroupId: config\.linePublicGroupId/)
 assert.match(weeklyPushApi, /mode: 'remaining-week'/)
 assert.match(fs.readFileSync(new URL('../server/api/line/test-weekly-push.post.ts', import.meta.url), 'utf8'), /mode: 'remaining-week'/)
 assert.match(fs.readFileSync(new URL('../server/api/line/legacy-weekly-push.post.ts', import.meta.url), 'utf8'), /mode: 'remaining-week'/)
@@ -308,11 +337,16 @@ assert.match(dailyPushApi, /linePublicGroupId: config\.linePublicGroupId/)
 assert.match(organizerPreviewApi, /Invalid date query/)
 assert.match(dailyPushApi, /Invalid date query/)
 assert.match(envExample, /NUXT_LINE_GROUP_ID=\nNUXT_LINE_LEGACY_GROUP_ID=\nNUXT_LINE_LEGACY_CHANNEL_ACCESS_TOKEN=\nNUXT_LINE_LEGACY_CHANNEL_SECRET=/)
+assert.match(wranglerConfig, /"0 2 \* \* 0"/)
+assert.match(wranglerConfig, /"0 2 \* \* 1"/)
 assert.match(wranglerConfig, /"\*\/15 \* \* \* \*"/)
-assert.match(cronPlugin, /LINE weekly cron started/)
-assert.match(cronPlugin, /getWeeklyEvents/)
-assert.match(cronPlugin, /formatWeeklyEventsFlexMessage/)
+assert.match(cronPlugin, /LINE production weekly cron started/)
+assert.match(cronPlugin, /LINE test next-week cron started/)
+assert.match(cronPlugin, /sendWeeklyLinePush/)
 assert.match(cronPlugin, /NUXT_LINE_PUBLIC_GROUP_ID/)
+assert.match(cronPlugin, /NUXT_LINE_TEST_GROUP_ID/)
+assert.match(cronPlugin, /PRODUCTION_WEEKLY_CRON_EXPRESSION = '0 2 \* \* 1'/)
+assert.match(cronPlugin, /TEST_NEXT_WEEKLY_CRON_EXPRESSION = '0 2 \* \* 0'/)
 assert.match(cronPlugin, /EVENT_SLUGS_CRON_EXPRESSION/)
 
 console.log('verify-line-weekly-push: ok')

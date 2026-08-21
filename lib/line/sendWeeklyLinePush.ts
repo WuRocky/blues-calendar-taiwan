@@ -1,6 +1,7 @@
 import dayjs, { type Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
+import type { NotionConnectionConfig } from '~~/lib/notion-connection'
 import type { WeeklyEventQueryMode } from '~~/lib/events/weeklyEvents'
 import { createWeeklyLineFlexMessage } from '~~/lib/line/createWeeklyLineFlexMessage'
 import { pushLineMessage } from '~~/lib/line/pushLineMessage'
@@ -12,6 +13,7 @@ export interface WeeklyLinePushConfig {
   lineChannelAccessToken: string
   lineGroupId: string
   mode?: WeeklyEventQueryMode
+  notionConfig?: Partial<NotionConnectionConfig>
   now?: Dayjs
   siteUrl?: string
 }
@@ -24,6 +26,7 @@ export async function sendWeeklyLinePush({
   lineGroupId,
   lineChannelAccessToken,
   mode = 'remaining-week',
+  notionConfig,
   now = dayjs(),
   siteUrl
 }: WeeklyLinePushConfig): Promise<WeeklyLinePushResult> {
@@ -33,6 +36,7 @@ export async function sendWeeklyLinePush({
 
   const { eventCount, message } = await createWeeklyLineFlexMessage(now, {
     mode,
+    notionConfig,
     siteUrl
   })
 

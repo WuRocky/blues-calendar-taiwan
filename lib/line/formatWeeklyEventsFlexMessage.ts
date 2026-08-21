@@ -24,6 +24,7 @@ const MAX_EVENT_BUBBLES = 11
 
 export interface FormatWeeklyEventsFlexMessageParams {
   events: readonly EventItem[]
+  periodLabel?: string
   siteUrl?: string
   weekEnd: Dayjs
   weekStart: Dayjs
@@ -33,8 +34,8 @@ function getWeekdayLabel(value: Dayjs) {
   return WEEKDAY_LABELS[value.day()] ?? ''
 }
 
-function formatSummaryLine(weekStart: Dayjs, weekEnd: Dayjs) {
-  return `💙 本週 Blues 活動`
+function formatSummaryLine(periodLabel: string) {
+  return `💙 ${periodLabel} Blues 活動`
 }
 
 function formatSummaryDateRange(weekStart: Dayjs, weekEnd: Dayjs) {
@@ -44,8 +45,8 @@ function formatSummaryDateRange(weekStart: Dayjs, weekEnd: Dayjs) {
   )
 }
 
-function formatAltText(weekStart: Dayjs, weekEnd: Dayjs, count: number) {
-  return `本週 Blues 活動 ${formatWeekRangeInline(
+function formatAltText(periodLabel: string, weekStart: Dayjs, weekEnd: Dayjs, count: number) {
+  return `${periodLabel} Blues 活動 ${formatWeekRangeInline(
     weekStart.tz(TAIPEI_TIMEZONE),
     weekEnd.tz(TAIPEI_TIMEZONE)
   )}，共 ${count} 場活動`
@@ -110,6 +111,7 @@ function createFooterButtons(event: Pick<EventItem, 'registrationUrl' | 'venueUr
 }
 
 function createSummaryBubble(
+  periodLabel: string,
   weekStart: Dayjs,
   weekEnd: Dayjs,
   count: number,
@@ -142,7 +144,7 @@ function createSummaryBubble(
       contents: [
         {
           type: 'text',
-          text: formatSummaryLine(weekStart, weekEnd),
+          text: formatSummaryLine(periodLabel),
           weight: 'bold',
           size: 'lg',
           wrap: true
@@ -156,7 +158,7 @@ function createSummaryBubble(
         },
         {
           type: 'text',
-          text: `本週共 ${count} 場活動`,
+          text: `${periodLabel}共 ${count} 場活動`,
           size: 'md',
           weight: 'bold',
           color: '#1F2937'
@@ -175,7 +177,7 @@ function createSummaryBubble(
   }
 }
 
-function createEmptyStateBubble(weekStart: Dayjs, weekEnd: Dayjs): LineFlexBubble {
+function createEmptyStateBubble(periodLabel: string, weekStart: Dayjs, weekEnd: Dayjs): LineFlexBubble {
   return {
     type: 'bubble',
     size: 'mega',
@@ -186,7 +188,7 @@ function createEmptyStateBubble(weekStart: Dayjs, weekEnd: Dayjs): LineFlexBubbl
       contents: [
         {
           type: 'text',
-          text: formatSummaryLine(weekStart, weekEnd),
+          text: formatSummaryLine(periodLabel),
           weight: 'bold',
           size: 'lg',
           wrap: true
@@ -200,7 +202,7 @@ function createEmptyStateBubble(weekStart: Dayjs, weekEnd: Dayjs): LineFlexBubbl
         },
         {
           type: 'text',
-          text: '本週暫無 Blues 活動 💙',
+          text: `${periodLabel}暫無 Blues 活動 💙`,
           size: 'md',
           wrap: true
         }
@@ -329,15 +331,16 @@ export function formatWeeklyEventsFlexMessage({
   weekStart,
   weekEnd,
   events,
-  siteUrl
+  siteUrl,
+  periodLabel = '本週'
 }: FormatWeeklyEventsFlexMessageParams): LineFlexMessage {
-  const altText = formatAltText(weekStart, weekEnd, events.length)
+  const altText = formatAltText(periodLabel, weekStart, weekEnd, events.length)
 
   if (events.length === 0) {
     return {
       type: 'flex',
       altText,
-      contents: createEmptyStateBubble(weekStart, weekEnd)
+      contents: createEmptyStateBubble(periodLabel, weekStart, weekEnd)
     }
   }
 
@@ -348,7 +351,7 @@ export function formatWeeklyEventsFlexMessage({
     altText,
     contents: {
       type: 'carousel',
-      contents: [createSummaryBubble(weekStart, weekEnd, events.length, events), ...eventBubbles]
+      contents: [createSummaryBubble(periodLabel, weekStart, weekEnd, events.length, events), ...eventBubbles]
     }
   }
 }
