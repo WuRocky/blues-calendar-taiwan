@@ -46,6 +46,18 @@ function formatSummaryCountLine(periodLabel: string, count: number) {
   return `本週共 ${count} 場活動`
 }
 
+function formatEmptySocialLine(periodLabel: string) {
+  if (periodLabel === '下週') {
+    return '下週目前沒有 Social 活動'
+  }
+
+  if (periodLabel === '近期') {
+    return '近期目前沒有 Social 活動'
+  }
+
+  return '本週目前沒有 Social 活動'
+}
+
 function formatSummaryDateRange(weekStart: Dayjs, weekEnd: Dayjs) {
   return formatWeekRangeInline(
     weekStart.tz(TAIPEI_TIMEZONE),
@@ -199,6 +211,14 @@ function createSummaryBubble(
     })
 
     summaryContents.push(...socialSummaryLines)
+  } else {
+    summaryContents.push({
+      type: 'text',
+      text: formatEmptySocialLine(periodLabel),
+      size: 'md',
+      color: '#374151',
+      wrap: true
+    })
   }
 
   if (workshopSummaryLines.length > 0) {
