@@ -331,11 +331,118 @@ assert.equal(workshopOnlyMessage.contents.type, 'carousel')
 assert.deepEqual(workshopOnlySummaryTexts, [
   '💙 下週 Blues 活動',
   '8/10(一) ～ 8/16(日)',
+  '下週目前沒有 Social 活動',
   '近期 WorkShop',
   '(日) 9/20 Future Workshop Only',
   '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
 ])
 assert.equal(workshopOnlyMessage.contents.contents[0].body.contents.some(component => component.type === 'text' && component.text === '下週共 1 場活動'), false)
+
+const weeklyWorkshopOnlyMessage = formatWeeklyEventsFlexMessage({
+  weekStart: weekRange.start,
+  weekEnd: weekRange.end,
+  events: [
+    makeEvent({
+      id: 'weekly-workshop-only',
+      slug: 'weekly-workshop-only',
+      eventType: 'workshop',
+      name: 'Weekly Workshop Only',
+      startTime: '2026-08-08T12:00:00.000Z',
+      endTime: '2026-08-08T14:00:00.000Z',
+      timeStatus: 'upcoming'
+    })
+  ],
+  siteUrl
+})
+
+const weeklyWorkshopOnlySummaryTexts = weeklyWorkshopOnlyMessage.contents.contents[0].body.contents
+  .filter(content => content.type === 'text')
+  .map(content => content.text)
+
+assert.deepEqual(weeklyWorkshopOnlySummaryTexts, [
+  '💙 本週 Blues 活動',
+  '8/3(一) ～ 8/9(日)',
+  '本週目前沒有 Social 活動',
+  '近期 WorkShop',
+  '(六) 8/8 Weekly Workshop Only',
+  '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
+])
+
+const recentWorkshopOnlyMessage = formatWeeklyEventsFlexMessage({
+  weekStart: now.startOf('day'),
+  weekEnd: nextWeekRange.end,
+  events: [
+    makeEvent({
+      id: 'recent-workshop-only',
+      slug: 'recent-workshop-only',
+      eventType: 'workshop',
+      name: 'Recent Workshop Only',
+      startTime: '2026-09-20T12:00:00.000Z',
+      endTime: '2026-09-20T14:00:00.000Z',
+      timeStatus: 'upcoming'
+    })
+  ],
+  siteUrl,
+  periodLabel: '近期'
+})
+
+const recentWorkshopOnlySummaryTexts = recentWorkshopOnlyMessage.contents.contents[0].body.contents
+  .filter(content => content.type === 'text')
+  .map(content => content.text)
+
+assert.deepEqual(recentWorkshopOnlySummaryTexts, [
+  '💙 近期 Blues 活動',
+  '8/6(四) ～ 8/16(日)',
+  '近期目前沒有 Social 活動',
+  '近期 WorkShop',
+  '(日) 9/20 Recent Workshop Only',
+  '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
+])
+
+const weeklyNoEventsMessage = formatWeeklyEventsFlexMessage({
+  weekStart: weekRange.start,
+  weekEnd: weekRange.end,
+  events: [],
+  siteUrl
+})
+
+const weeklyNoEventsSummaryTexts = weeklyNoEventsMessage.contents.body.contents
+  .filter(content => content.type === 'text')
+  .map(content => content.text)
+
+assert.deepEqual(weeklyNoEventsSummaryTexts, [
+  '💙 本週 Blues 活動',
+  '8/3(一) ～ 8/9(日)',
+  '本週暫無 Blues 活動 💙'
+])
+
+const weeklyNoSocialNoWorkshopMessage = formatWeeklyEventsFlexMessage({
+  weekStart: weekRange.start,
+  weekEnd: weekRange.end,
+  events: [
+    makeEvent({
+      id: 'weekly-no-social',
+      slug: 'weekly-no-social',
+      eventType: 'class',
+      name: 'Weekly Class Only',
+      startTime: null,
+      endTime: null,
+      timeStatus: 'unscheduled'
+    })
+  ],
+  siteUrl
+})
+
+const weeklyNoSocialNoWorkshopSummaryTexts = weeklyNoSocialNoWorkshopMessage.contents.contents[0].body.contents
+  .filter(content => content.type === 'text')
+  .map(content => content.text)
+
+assert.deepEqual(weeklyNoSocialNoWorkshopSummaryTexts, [
+  '💙 本週 Blues 活動',
+  '8/3(一) ～ 8/9(日)',
+  '本週目前沒有 Social 活動',
+  '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
+])
 
 const combinedOrganizerMessage = formatWeeklyEventsFlexMessage({
   weekStart: weekRange.start,
