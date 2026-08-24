@@ -39,7 +39,8 @@ export interface WeeklyCommandMatch {
 
 const DIRECT_COMMAND_MODES: Record<LineBotContext, Partial<Record<string, WeeklyEventQueryMode>>> = {
   production: {
-    本週活動: 'remaining-week'
+    本週活動: 'remaining-week',
+    下週活動: 'next-week'
   },
   test: {
     本週活動: 'remaining-week'
@@ -51,7 +52,8 @@ const DIRECT_COMMAND_MODES: Record<LineBotContext, Partial<Record<string, Weekly
 
 const MENTION_COMMAND_MODES: Record<LineBotContext, Partial<Record<string, WeeklyEventQueryMode>>> = {
   production: {
-    本週活動: 'remaining-week'
+    本週活動: 'remaining-week',
+    下週活動: 'next-week'
   },
   test: {
     活動: 'remaining-and-next-week',

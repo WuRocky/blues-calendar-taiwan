@@ -51,8 +51,9 @@ function makeDirectEvent(command) {
 
 assert.equal(resolveWeeklyCommand(makeMentionEvent('本週活動'), 'production')?.mode, 'remaining-week')
 assert.equal(resolveWeeklyCommand(makeDirectEvent('本週活動'), 'production')?.mode, 'remaining-week')
+assert.equal(resolveWeeklyCommand(makeMentionEvent('下週活動'), 'production')?.mode, 'next-week')
+assert.equal(resolveWeeklyCommand(makeDirectEvent('下週活動'), 'production')?.mode, 'next-week')
 assert.equal(resolveWeeklyCommand(makeMentionEvent('活動'), 'production'), null)
-assert.equal(resolveWeeklyCommand(makeMentionEvent('下週活動'), 'production'), null)
 assert.equal(resolveWeeklyCommand(makeMentionEvent(''), 'production'), null)
 
 assert.equal(resolveWeeklyCommand(makeMentionEvent('活動'), 'test')?.mode, 'remaining-and-next-week')
