@@ -214,6 +214,7 @@ assert.deepEqual(nextWeekSummaryTexts, [
   '(一) 8/10 Next Week Workshop',
   '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
 ])
+assert.equal(nextWeekMessage.contents.contents[0].body.contents[4].margin, 'xl')
 assert.equal(nextWeekMessage.contents.contents[1].body.contents[1].contents[0].text, 'Social')
 assert.equal(nextWeekMessage.contents.contents[2].body.contents[1].contents[0].text, 'WorkShop')
 assert.equal(nextWeekMessage.contents.contents[2].body.contents[1].backgroundColor, '#DDEEFE')
@@ -338,6 +339,7 @@ assert.deepEqual(workshopOnlySummaryTexts, [
   '(日) 9/20 Future Workshop Only',
   '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
 ])
+assert.equal(workshopOnlyMessage.contents.contents[0].body.contents[3].margin, 'xl')
 assert.equal(workshopOnlyMessage.contents.contents[0].body.contents.some(component => component.type === 'text' && component.text === '下週共 1 場活動'), false)
 
 const weeklyWorkshopOnlyMessage = formatWeeklyEventsFlexMessage({
@@ -369,6 +371,7 @@ assert.deepEqual(weeklyWorkshopOnlySummaryTexts, [
   '(六) 8/8 Weekly Workshop Only',
   '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
 ])
+assert.equal(weeklyWorkshopOnlyMessage.contents.contents[0].body.contents[3].margin, 'xl')
 
 const recentWorkshopOnlyMessage = formatWeeklyEventsFlexMessage({
   weekStart: now.startOf('day'),
@@ -400,6 +403,7 @@ assert.deepEqual(recentWorkshopOnlySummaryTexts, [
   '(日) 9/20 Recent Workshop Only',
   '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
 ])
+assert.equal(recentWorkshopOnlyMessage.contents.contents[0].body.contents[3].margin, 'xl')
 
 const weeklyNoEventsMessage = formatWeeklyEventsFlexMessage({
   weekStart: weekRange.start,
@@ -445,6 +449,7 @@ assert.deepEqual(weeklyNoSocialNoWorkshopSummaryTexts, [
   '本週目前沒有 Social 活動',
   '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
 ])
+assert.equal(weeklyNoSocialNoWorkshopMessage.contents.contents[0].body.contents.some(component => component.type === 'text' && component.text === '近期 WorkShop'), false)
 
 const combinedOrganizerMessage = formatWeeklyEventsFlexMessage({
   weekStart: weekRange.start,

@@ -259,7 +259,7 @@ function createSummaryBubble(
       size: 'md',
       weight: 'bold',
       color: '#1F2937',
-      margin: socialSummaryLines.length > 0 ? WORKSHOP_SECTION_MARGIN : 'none'
+      margin: WORKSHOP_SECTION_MARGIN
     })
 
     summaryContents.push(...workshopSummaryLines)
