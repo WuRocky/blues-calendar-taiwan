@@ -80,6 +80,10 @@ function compareWeeklyEvents(a: EventItem, b: EventItem) {
   return (a.slug || a.id).localeCompare(b.slug || b.id)
 }
 
+export function sortWeeklyDisplayEvents(events: readonly EventItem[]) {
+  return [...events].sort(compareWeeklyEvents)
+}
+
 function selectBaseWeeklyEvents(events: readonly EventItem[]) {
   return [...events]
     .filter(event => event.status.toLowerCase() === 'published')
@@ -156,4 +160,35 @@ export function selectNextWeeklyEvents(events: readonly EventItem[], now: Dayjs 
 
 export function selectDailyEvents(events: readonly EventItem[], now: Dayjs = dayjs()) {
   return selectEventsInRange(events, getTaipeiDayRange(now))
+}
+
+export function selectPublishedWorkshopEvents(events: readonly EventItem[]) {
+  return sortWeeklyDisplayEvents(
+    events.filter((event) => {
+      return event.status.toLowerCase() === 'published'
+        && event.eventType === 'workshop'
+        && event.eventStatus !== 'cancelled'
+        && event.timeStatus !== 'invalid'
+        && event.timeStatus !== 'unscheduled'
+        && event.timeStatus !== 'ended'
+    })
+  )
+}
+
+export function selectLineActivityEvents(
+  events: readonly EventItem[],
+  now: Dayjs = dayjs(),
+  mode: WeeklyEventQueryMode = 'full-week'
+) {
+  const mergedEvents = new Map<string, EventItem>()
+
+  for (const event of selectWeeklyEvents(events, now, mode)) {
+    mergedEvents.set(event.id, event)
+  }
+
+  for (const event of selectPublishedWorkshopEvents(events)) {
+    mergedEvents.set(event.id, event)
+  }
+
+  return sortWeeklyDisplayEvents([...mergedEvents.values()])
 }

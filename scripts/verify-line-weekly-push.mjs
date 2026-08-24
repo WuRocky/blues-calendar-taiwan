@@ -16,6 +16,8 @@ const jiti = jitiFactory(import.meta.url, {
 })
 
 const {
+  selectLineActivityEvents,
+  selectPublishedWorkshopEvents,
   selectWeeklyEvents,
   selectRemainingWeeklyEvents,
   selectNextWeeklyEvents,
@@ -213,6 +215,8 @@ assert.equal(getOrganizerLogoPath('小白 & Blues20'), '/organizer-logos/blues20
 assert.equal(getOrganizerLogoPath('TapLife & Guest'), '/organizer-logos/taplife.png')
 assert.equal(getOrganizerLogoPath('find-your-blues x Guest'), '/organizer-logos/find-your-blues.png')
 assert.equal(getOrganizerLogoPath('find-your-blues'), '/organizer-logos/find-your-blues.png')
+assert.equal(getOrganizerLogoPath('Find Your Blues'), '/organizer-logos/find-your-blues.png')
+assert.equal(getOrganizerLogoPath('Find Your Blues & Guest'), '/organizer-logos/find-your-blues.png')
 assert.equal(getOrganizerLogoPath('TapLife'), '/organizer-logos/taplife.png')
 assert.equal(getOrganizerLogoPath(' Unknown Organizer '), null)
 assert.equal(getOrganizerLogoPath(''), null)
@@ -231,6 +235,39 @@ assert.deepEqual(
   ]
 )
 assert.equal(getOrganizerLogos('Unknown Organizer').length, 0)
+
+const workshopNow = dayjs.tz('2026-08-24 12:00:00', 'YYYY-MM-DD HH:mm:ss', 'Asia/Taipei')
+const workshopEvents = [
+  makeEvent({ id: 'social-this-week', slug: 'social-this-week', eventType: 'social', name: 'This Week Social', startTime: '2026-08-28T12:00:00.000Z', endTime: '2026-08-28T14:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent({ id: 'social-next-week', slug: 'social-next-week', eventType: 'social', name: 'Next Week Social', startTime: '2026-09-04T12:00:00.000Z', endTime: '2026-09-04T14:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent({ id: 'workshop-this-week', slug: 'workshop-this-week', eventType: 'workshop', name: 'Workshop This Week', startTime: '2026-08-29T12:00:00.000Z', endTime: '2026-08-29T14:00:00.000Z', timeStatus: 'upcoming', organizer: 'find-your-blues' }),
+  makeEvent({ id: 'workshop-september', slug: 'workshop-september', eventType: 'workshop', name: 'Workshop September', startTime: '2026-09-20T12:00:00.000Z', endTime: '2026-09-20T14:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent({ id: 'workshop-november', slug: 'workshop-november', eventType: 'workshop', name: 'Workshop November', startTime: '2026-11-15T12:00:00.000Z', endTime: '2026-11-15T14:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent({ id: 'pending-workshop', slug: 'pending-workshop', status: 'Pending', eventType: 'workshop', name: 'Pending Workshop', startTime: '2026-09-25T12:00:00.000Z', endTime: '2026-09-25T14:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent({ id: 'draft-workshop', slug: 'draft-workshop', status: 'Draft', eventType: 'workshop', name: 'Draft Workshop', startTime: '2026-10-01T12:00:00.000Z', endTime: '2026-10-01T14:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent({ id: 'cancelled-workshop', slug: 'cancelled-workshop', eventType: 'workshop', eventStatus: 'cancelled', name: 'Cancelled Workshop', startTime: '2026-10-05T12:00:00.000Z', endTime: '2026-10-05T14:00:00.000Z', timeStatus: 'upcoming' }),
+  makeEvent({ id: 'ended-workshop', slug: 'ended-workshop', eventType: 'workshop', name: 'Ended Workshop', startTime: '2026-08-10T12:00:00.000Z', endTime: '2026-08-10T14:00:00.000Z', timeStatus: 'ended' })
+]
+
+assert.deepEqual(
+  selectPublishedWorkshopEvents(workshopEvents).map(event => event.id),
+  ['workshop-this-week', 'workshop-september', 'workshop-november']
+)
+
+assert.deepEqual(
+  selectLineActivityEvents(workshopEvents, workshopNow, 'remaining-week').map(event => event.id),
+  ['social-this-week', 'workshop-this-week', 'workshop-september', 'workshop-november']
+)
+
+assert.deepEqual(
+  selectLineActivityEvents(workshopEvents, workshopNow, 'next-week').map(event => event.id),
+  ['workshop-this-week', 'social-next-week', 'workshop-september', 'workshop-november']
+)
+
+assert.deepEqual(
+  selectLineActivityEvents(workshopEvents, workshopNow, 'remaining-and-next-week').map(event => event.id),
+  ['social-this-week', 'workshop-this-week', 'social-next-week', 'workshop-september', 'workshop-november']
+)
 
 const combinedOrganizerMessage = formatWeeklyEventsFlexMessage({
   weekStart: weekRange.start,
