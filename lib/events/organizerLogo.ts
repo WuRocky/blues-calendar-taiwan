@@ -1,12 +1,24 @@
 import { resolveSiteUrl } from '~~/lib/event-calendar'
 
-const ORGANIZER_LOGO_FILE_PATHS = {
-  Blues20: '/organizer-logos/blues20.png',
-  'find-your-blues': '/organizer-logos/find-your-blues.png',
-  TapLife: '/organizer-logos/taplife.png'
-} as const
+const ORGANIZER_LOGO_SOURCES = [
+  {
+    aliases: ['blues20'],
+    organizer: 'Blues20',
+    path: '/organizer-logos/blues20.png'
+  },
+  {
+    aliases: ['find-your-blues', 'find your blues'],
+    organizer: 'find-your-blues',
+    path: '/organizer-logos/find-your-blues.png'
+  },
+  {
+    aliases: ['taplife'],
+    organizer: 'TapLife',
+    path: '/organizer-logos/taplife.png'
+  }
+] as const
 
-type OrganizerLogoName = keyof typeof ORGANIZER_LOGO_FILE_PATHS
+type OrganizerLogoName = typeof ORGANIZER_LOGO_SOURCES[number]['organizer']
 
 export interface OrganizerLogoMatch {
   organizer: OrganizerLogoName
@@ -28,10 +40,10 @@ function getOrganizerLogoMatches(organizer: string | null | undefined): Organize
     return []
   }
 
-  return (Object.entries(ORGANIZER_LOGO_FILE_PATHS) as Array<[OrganizerLogoName, string]>)
-    .filter(([organizerName]) => searchValue.includes(organizerName.toLowerCase()))
-    .map(([organizerName, path]) => ({
-      organizer: organizerName,
+  return ORGANIZER_LOGO_SOURCES
+    .filter(({ aliases }) => aliases.some(alias => searchValue.includes(alias)))
+    .map(({ organizer, path }) => ({
+      organizer,
       path
     }))
 }
