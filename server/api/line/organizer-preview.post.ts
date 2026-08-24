@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (!config.lineOrganizerGroupId || !config.lineChannelAccessToken || !config.lineJobSecret) {
+  if (!config.lineTestGroupId || !config.lineTestChannelAccessToken || !config.lineJobSecret) {
     throw createError({
       statusCode: 500,
       statusMessage: 'Missing LINE configuration'
@@ -35,8 +35,8 @@ export default defineEventHandler(async (event) => {
 
   try {
     const result = await sendOrganizerPreviewLinePush({
-      lineChannelAccessToken: config.lineChannelAccessToken,
-      lineOrganizerGroupId: config.lineOrganizerGroupId,
+      lineChannelAccessToken: config.lineTestChannelAccessToken,
+      lineOrganizerGroupId: config.lineTestGroupId,
       now
     })
 
