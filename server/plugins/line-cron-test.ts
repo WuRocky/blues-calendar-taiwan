@@ -5,6 +5,7 @@ import { defineNitroPlugin } from 'nitropack/runtime'
 import { TAIPEI_TIMEZONE } from '~~/lib/event-time'
 import { ensureMissingEventSlugs } from '~~/lib/events/ensureMissingEventSlugs'
 import { sendOrganizerPreviewLinePush } from '~~/lib/line/sendOrganizerPreviewLinePush'
+import { sendDailyLinePush } from '~~/lib/line/sendDailyLinePush'
 import { sendWeeklyLinePush } from '~~/lib/line/sendWeeklyLinePush'
 
 dayjs.extend(utc)
@@ -12,6 +13,7 @@ dayjs.extend(timezone)
 
 const PRODUCTION_WEEKLY_CRON_EXPRESSION = '0 2 * * MON'
 const TEST_NEXT_WEEKLY_CRON_EXPRESSION = '0 2 * * SUN'
+const PRODUCTION_DAILY_CRON_EXPRESSION = '0 2 * * *'
 const EVENT_SLUGS_CRON_EXPRESSION = '*/15 * * * *'
 
 interface LineCronEnvBindings {
@@ -158,6 +160,46 @@ async function handleOrganizerPreviewCron(
   }
 }
 
+async function handleDailyLineCron(
+  scheduledTime: number,
+  config: WeeklyLineCronConfig
+) {
+  if (!config.groupId || !config.lineChannelAccessToken) {
+    console.log('LINE production daily cron skipped: missing configuration')
+    return
+  }
+
+  const now = dayjs(scheduledTime).tz(TAIPEI_TIMEZONE)
+
+  try {
+    console.log('LINE production daily cron push starting', {
+      scheduledTime
+    })
+
+    const result = await sendDailyLinePush({
+      lineChannelAccessToken: config.lineChannelAccessToken,
+      linePublicGroupId: config.groupId,
+      now
+    })
+
+    if (result.skipped) {
+      console.log('LINE production daily cron skipped: no daily events')
+      return
+    }
+
+    console.log('LINE production daily cron push sent', {
+      eventCount: result.eventCount
+    })
+  } catch (error) {
+    console.error(
+      'LINE production daily cron failed',
+      error instanceof Error ? error.message : 'Unknown error'
+    )
+
+    throw error
+  }
+}
+
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('cloudflare:scheduled', async (event) => {
     const actualCron = event.controller?.cron ?? null
@@ -209,6 +251,30 @@ export default defineNitroPlugin((nitroApp) => {
           siteUrl
         },
         'full-week'
+      )
+      return
+    }
+
+    if (actualCron === PRODUCTION_DAILY_CRON_EXPRESSION) {
+      console.log('LINE production daily cron started', {
+        cron: actualCron,
+        scheduledTime
+      })
+
+      console.log('LINE production daily cron config status', {
+        hasLinePublicGroupId: Boolean(linePublicGroupId),
+        hasLineChannelAccessToken: Boolean(lineChannelAccessToken)
+      })
+
+      await handleDailyLineCron(
+        event.controller.scheduledTime,
+        {
+          groupId: linePublicGroupId,
+          lineChannelAccessToken,
+          notionToken,
+          notionEventsDatabaseId,
+          siteUrl
+        }
       )
       return
     }
@@ -269,6 +335,7 @@ export default defineNitroPlugin((nitroApp) => {
       receivedCron: actualCron,
       expectedCrons: [
         PRODUCTION_WEEKLY_CRON_EXPRESSION,
+        PRODUCTION_DAILY_CRON_EXPRESSION,
         TEST_NEXT_WEEKLY_CRON_EXPRESSION,
         EVENT_SLUGS_CRON_EXPRESSION
       ],
