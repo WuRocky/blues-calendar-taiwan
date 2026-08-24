@@ -21,6 +21,7 @@ dayjs.extend(timezone)
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'] as const
 const MAX_EVENT_BUBBLES = 11
+const WORKSHOP_SECTION_MARGIN = 'xl'
 
 export interface FormatWeeklyEventsFlexMessageParams {
   events: readonly EventItem[]
@@ -98,19 +99,49 @@ function getEventTypeBadgeStyle(eventType: string) {
   }
 }
 
-function formatEventDateTime(event: Pick<EventItem, 'startTime' | 'startTimeIsDateOnly'>) {
+function formatCardDatePart(value: Dayjs) {
+  return `${value.format('M/D')} (${getWeekdayLabel(value)})`
+}
+
+function formatEventDateTime(
+  event: Pick<EventItem, 'startTime' | 'endTime' | 'startTimeIsDateOnly' | 'endTimeIsDateOnly'>
+) {
   if (!event.startTime) {
     return ''
   }
 
   const start = dayjs(event.startTime).tz(TAIPEI_TIMEZONE)
-  const datePart = `${start.format('M/D')}（${getWeekdayLabel(start)}）`
+  const startDatePart = formatCardDatePart(start)
 
   if (event.startTimeIsDateOnly) {
-    return datePart
+    return startDatePart
   }
 
-  return `${datePart} ${start.format('HH:mm')}`
+  const startText = `${startDatePart} ${start.format('HH:mm')}`
+
+  if (!event.endTime) {
+    return startText
+  }
+
+  const end = dayjs(event.endTime).tz(TAIPEI_TIMEZONE)
+
+  if (!end.isValid()) {
+    return startText
+  }
+
+  if (event.endTimeIsDateOnly) {
+    if (start.isSame(end, 'day')) {
+      return startText
+    }
+
+    return `${startText} - ${formatCardDatePart(end)}`
+  }
+
+  if (start.isSame(end, 'day')) {
+    return `${startText} - ${end.format('HH:mm')}`
+  }
+
+  return `${startText} - ${formatCardDatePart(end)} ${end.format('HH:mm')}`
 }
 
 function createButton(label: string, uri: string): LineFlexButton {
@@ -228,7 +259,7 @@ function createSummaryBubble(
       size: 'md',
       weight: 'bold',
       color: '#1F2937',
-      margin: socialSummaryLines.length > 0 ? 'xl' : 'none'
+      margin: socialSummaryLines.length > 0 ? WORKSHOP_SECTION_MARGIN : 'none'
     })
 
     summaryContents.push(...workshopSummaryLines)
