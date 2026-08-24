@@ -38,6 +38,14 @@ function formatSummaryLine(periodLabel: string) {
   return `💙 ${periodLabel} Blues 活動`
 }
 
+function formatSummaryCountLine(periodLabel: string, count: number) {
+  if (periodLabel === '下週') {
+    return `下週共 ${count} 場活動`
+  }
+
+  return `本週共 ${count} 場活動`
+}
+
 function formatSummaryDateRange(weekStart: Dayjs, weekEnd: Dayjs) {
   return formatWeekRangeInline(
     weekStart.tz(TAIPEI_TIMEZONE),
@@ -53,7 +61,29 @@ function formatAltText(periodLabel: string, weekStart: Dayjs, weekEnd: Dayjs, co
 }
 
 function getEventTypeBadgeLabel(eventType: string) {
-  return getEventTypeLabel(eventType).toUpperCase()
+  const label = getEventTypeLabel(eventType)
+
+  if (label === 'Workshop') {
+    return 'WorkShop'
+  }
+
+  return label
+}
+
+function getEventTypeBadgeStyle(eventType: string) {
+  const normalized = eventType.toLowerCase()
+
+  if (normalized === 'workshop') {
+    return {
+      backgroundColor: '#DDEEFE',
+      color: '#1E5AA8'
+    }
+  }
+
+  return {
+    backgroundColor: '#D8F0E3',
+    color: '#0F5132'
+  }
 }
 
 function formatEventDateTime(event: Pick<EventItem, 'startTime' | 'startTimeIsDateOnly'>) {
@@ -117,7 +147,8 @@ function createSummaryBubble(
   count: number,
   events: readonly EventItem[]
 ): LineFlexBubble {
-  const eventSummaryLines: LineFlexBox['contents'] = []
+  const socialSummaryLines: LineFlexBox['contents'] = []
+  const workshopSummaryLines: LineFlexBox['contents'] = []
 
   for (const event of events) {
     if (!event.startTime) {
@@ -125,14 +156,72 @@ function createSummaryBubble(
     }
 
     const start = dayjs(event.startTime).tz(TAIPEI_TIMEZONE)
-    eventSummaryLines.push({
+    const summaryLine = {
       type: 'text',
-      text: `(${getWeekdayLabel(start)}) ${event.name}`,
+      text: `(${getWeekdayLabel(start)}) ${start.format('M/D')} ${event.name}`,
       size: 'sm',
       color: '#374151',
       wrap: true
-    })
+    } satisfies LineFlexBox['contents'][number]
+
+    if (event.eventType === 'workshop') {
+      workshopSummaryLines.push(summaryLine)
+      continue
+    }
+
+    socialSummaryLines.push(summaryLine)
   }
+
+  const summaryContents: LineFlexBox['contents'] = [
+    {
+      type: 'text',
+      text: formatSummaryLine(periodLabel),
+      weight: 'bold',
+      size: 'lg',
+      wrap: true
+    },
+    {
+      type: 'text',
+      text: formatSummaryDateRange(weekStart, weekEnd),
+      size: 'sm',
+      color: '#4B5563',
+      wrap: true
+    }
+  ]
+
+  if (socialSummaryLines.length > 0) {
+    summaryContents.push({
+      type: 'text',
+      text: formatSummaryCountLine(periodLabel, socialSummaryLines.length),
+      size: 'md',
+      weight: 'bold',
+      color: '#1F2937'
+    })
+
+    summaryContents.push(...socialSummaryLines)
+  }
+
+  if (workshopSummaryLines.length > 0) {
+    summaryContents.push({
+      type: 'text',
+      text: '近期 WorkShop',
+      size: 'md',
+      weight: 'bold',
+      color: '#1F2937',
+      margin: socialSummaryLines.length > 0 ? 'md' : 'none'
+    })
+
+    summaryContents.push(...workshopSummaryLines)
+  }
+
+  summaryContents.push({
+    type: 'text',
+    text: '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。',
+    size: 'xs',
+    color: '#888888',
+    wrap: true,
+    margin: 'md'
+  })
 
   return {
     type: 'bubble',
@@ -141,38 +230,7 @@ function createSummaryBubble(
       type: 'box',
       layout: 'vertical',
       spacing: 'md',
-      contents: [
-        {
-          type: 'text',
-          text: formatSummaryLine(periodLabel),
-          weight: 'bold',
-          size: 'lg',
-          wrap: true
-        },
-        {
-          type: 'text',
-          text: formatSummaryDateRange(weekStart, weekEnd),
-          size: 'sm',
-          color: '#4B5563',
-          wrap: true
-        },
-        {
-          type: 'text',
-          text: `${periodLabel}共 ${count} 場活動`,
-          size: 'md',
-          weight: 'bold',
-          color: '#1F2937'
-        },
-        ...eventSummaryLines,
-        {
-          type: 'text',
-          text: '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。',
-          size: 'xs',
-          color: '#888888',
-          wrap: true,
-          margin: 'md'
-        }
-      ]
+      contents: summaryContents
     }
   }
 }
@@ -262,6 +320,7 @@ function createEventBubble(event: EventItem, siteUrl?: string): LineFlexBubble {
   const footer = createFooterButtons(event)
   const venueName = event.venueName.trim()
   const organizerContents = createOrganizerContents(event, siteUrl)
+  const badgeStyle = getEventTypeBadgeStyle(event.eventType)
   const bodyContents: LineFlexBox['contents'] = [
     {
       type: 'text',
@@ -278,14 +337,14 @@ function createEventBubble(event: EventItem, siteUrl?: string): LineFlexBubble {
       paddingStart: '8px',
       paddingEnd: '8px',
       cornerRadius: '999px',
-      backgroundColor: '#D8F0E3',
+      backgroundColor: badgeStyle.backgroundColor,
       contents: [
         {
           type: 'text',
           text: getEventTypeBadgeLabel(event.eventType),
           size: 'xs',
           weight: 'bold',
-          color: '#0F5132'
+          color: badgeStyle.color
         }
       ]
     },

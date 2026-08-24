@@ -139,29 +139,37 @@ const weeklyMessage = formatWeeklyEventsFlexMessage({
   siteUrl
 })
 
+const weeklySummaryTexts = weeklyMessage.contents.contents[0].body.contents
+  .filter(content => content.type === 'text')
+  .map(content => content.text)
+
 assert.equal(weeklyMessage.type, 'flex')
 assert.equal(weeklyMessage.altText, '本週 Blues 活動 8/3(一) ～ 8/9(日)，共 7 場活動')
 assert.equal(weeklyMessage.contents.type, 'carousel')
 assert.equal(weeklyMessage.contents.contents.length, 8)
-assert.equal(weeklyMessage.contents.contents[0].body.contents[0].text, '💙 本週 Blues 活動')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[1].text, '8/3(一) ～ 8/9(日)')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[2].text, '本週共 7 場活動')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[3].text, '(一) Taipei Blues Social')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[4].text, '(三) Blues 初級課')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[5].text, '(三) Ended Yesterday')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[6].text, '(四) Today Cross Day')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[7].text, '(四) No End Past Today')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[8].text, '(四) Today Event')
-assert.equal(weeklyMessage.contents.contents[0].body.contents[9].text, '(日) No End Social')
+assert.deepEqual(weeklySummaryTexts, [
+  '💙 本週 Blues 活動',
+  '8/3(一) ～ 8/9(日)',
+  '本週共 7 場活動',
+  '(一) 8/3 Taipei Blues Social',
+  '(三) 8/5 Blues 初級課',
+  '(三) 8/5 Ended Yesterday',
+  '(四) 8/6 Today Cross Day',
+  '(四) 8/6 No End Past Today',
+  '(四) 8/6 Today Event',
+  '(日) 8/9 No End Social',
+  '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
+])
 assert.equal(weeklyMessage.contents.contents[1].body.contents[0].text, '8/3（一） 00:00')
-assert.equal(weeklyMessage.contents.contents[1].body.contents[1].contents[0].text, 'SOCIAL')
+assert.equal(weeklyMessage.contents.contents[1].body.contents[1].contents[0].text, 'Social')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[2].text, 'Taipei Blues Social')
+assert.equal(weeklyMessage.contents.contents[1].body.contents[1].backgroundColor, '#D8F0E3')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[3].contents[0].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/taplife.png')
 assert.equal('cornerRadius' in weeklyMessage.contents.contents[1].body.contents[3].contents[0].contents[0], false)
 assert.equal(weeklyMessage.contents.contents[1].body.contents[3].contents[1].text, 'TapLife')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[4].text, '📍 Dance Hall')
 assert.equal(weeklyMessage.contents.contents[2].body.contents[0].text, '8/5（三） 20:00')
-assert.equal(weeklyMessage.contents.contents[2].body.contents[1].contents[0].text, 'CLASS')
+assert.equal(weeklyMessage.contents.contents[2].body.contents[1].contents[0].text, 'Class')
 assert.equal(weeklyMessage.contents.contents[2].body.contents[2].text, 'Blues 初級課')
 assert.equal(weeklyMessage.contents.contents[2].body.contents[3].contents[0].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/blues20.png')
 assert.equal('cornerRadius' in weeklyMessage.contents.contents[2].body.contents[3].contents[0].contents[0], false)
@@ -173,7 +181,7 @@ assert.equal(weeklyMessage.contents.contents[2].footer.contents[0].action.uri, '
 assert.equal(weeklyMessage.contents.contents[2].footer.contents[1].action.label, '活動資訊')
 assert.equal(weeklyMessage.contents.contents[2].footer.contents[1].action.uri, 'https://example.com/register')
 assert.equal(weeklyMessage.contents.contents[7].body.contents[0].text, '8/9（日） 19:30')
-assert.equal(weeklyMessage.contents.contents[7].body.contents[1].contents[0].text, 'SOCIAL')
+assert.equal(weeklyMessage.contents.contents[7].body.contents[1].contents[0].text, 'Social')
 assert.equal(weeklyMessage.contents.contents[7].body.contents[2].text, 'No End Social')
 assert.equal(weeklyMessage.contents.contents[7].body.contents[3].contents[0].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/find-your-blues.png')
 assert.equal('cornerRadius' in weeklyMessage.contents.contents[7].body.contents[3].contents[0].contents[0], false)
@@ -191,10 +199,24 @@ const nextWeekMessage = formatWeeklyEventsFlexMessage({
   periodLabel: '下週'
 })
 
+const nextWeekSummaryTexts = nextWeekMessage.contents.contents[0].body.contents
+  .filter(content => content.type === 'text')
+  .map(content => content.text)
+
 assert.equal(nextWeekMessage.altText, '下週 Blues 活動 8/10(一) ～ 8/16(日)，共 2 場活動')
 assert.equal(nextWeekMessage.contents.type, 'carousel')
-assert.equal(nextWeekMessage.contents.contents[0].body.contents[0].text, '💙 下週 Blues 活動')
-assert.equal(nextWeekMessage.contents.contents[0].body.contents[2].text, '下週共 2 場活動')
+assert.deepEqual(nextWeekSummaryTexts, [
+  '💙 下週 Blues 活動',
+  '8/10(一) ～ 8/16(日)',
+  '下週共 1 場活動',
+  '(一) 8/10 Next Week Overlap',
+  '近期 WorkShop',
+  '(一) 8/10 Next Week Workshop',
+  '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
+])
+assert.equal(nextWeekMessage.contents.contents[1].body.contents[1].contents[0].text, 'Social')
+assert.equal(nextWeekMessage.contents.contents[2].body.contents[1].contents[0].text, 'WorkShop')
+assert.equal(nextWeekMessage.contents.contents[2].body.contents[1].backgroundColor, '#DDEEFE')
 
 const recentMessage = formatWeeklyEventsFlexMessage({
   weekStart: now.startOf('day'),
@@ -204,10 +226,24 @@ const recentMessage = formatWeeklyEventsFlexMessage({
   periodLabel: '近期'
 })
 
+const recentSummaryTexts = recentMessage.contents.contents[0].body.contents
+  .filter(content => content.type === 'text')
+  .map(content => content.text)
+
 assert.equal(recentMessage.altText, '近期 Blues 活動 8/6(四) ～ 8/16(日)，共 5 場活動')
 assert.equal(recentMessage.contents.type, 'carousel')
-assert.equal(recentMessage.contents.contents[0].body.contents[0].text, '💙 近期 Blues 活動')
-assert.equal(recentMessage.contents.contents[0].body.contents[2].text, '近期共 5 場活動')
+assert.deepEqual(recentSummaryTexts, [
+  '💙 近期 Blues 活動',
+  '8/6(四) ～ 8/16(日)',
+  '本週共 4 場活動',
+  '(一) 8/3 Taipei Blues Social',
+  '(四) 8/6 Today Event',
+  '(日) 8/9 No End Social',
+  '(一) 8/10 Next Week Overlap',
+  '近期 WorkShop',
+  '(一) 8/10 Next Week Workshop',
+  '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
+])
 
 assert.equal(getOrganizerLogoPath('Blues20'), '/organizer-logos/blues20.png')
 assert.equal(getOrganizerLogoPath('Blues20 & 小白'), '/organizer-logos/blues20.png')
@@ -268,6 +304,38 @@ assert.deepEqual(
   selectLineActivityEvents(workshopEvents, workshopNow, 'remaining-and-next-week').map(event => event.id),
   ['social-this-week', 'workshop-this-week', 'social-next-week', 'workshop-september', 'workshop-november']
 )
+
+const workshopOnlyMessage = formatWeeklyEventsFlexMessage({
+  weekStart: nextWeekRange.start,
+  weekEnd: nextWeekRange.end,
+  events: [
+    makeEvent({
+      id: 'future-workshop-only',
+      slug: 'future-workshop-only',
+      eventType: 'workshop',
+      name: 'Future Workshop Only',
+      startTime: '2026-09-20T12:00:00.000Z',
+      endTime: '2026-09-20T14:00:00.000Z',
+      timeStatus: 'upcoming'
+    })
+  ],
+  siteUrl,
+  periodLabel: '下週'
+})
+
+const workshopOnlySummaryTexts = workshopOnlyMessage.contents.contents[0].body.contents
+  .filter(content => content.type === 'text')
+  .map(content => content.text)
+
+assert.equal(workshopOnlyMessage.contents.type, 'carousel')
+assert.deepEqual(workshopOnlySummaryTexts, [
+  '💙 下週 Blues 活動',
+  '8/10(一) ～ 8/16(日)',
+  '近期 WorkShop',
+  '(日) 9/20 Future Workshop Only',
+  '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
+])
+assert.equal(workshopOnlyMessage.contents.contents[0].body.contents.some(component => component.type === 'text' && component.text === '下週共 1 場活動'), false)
 
 const combinedOrganizerMessage = formatWeeklyEventsFlexMessage({
   weekStart: weekRange.start,
