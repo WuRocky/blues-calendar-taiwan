@@ -4,6 +4,7 @@ import timezone from 'dayjs/plugin/timezone'
 import { defineNitroPlugin } from 'nitropack/runtime'
 import { TAIPEI_TIMEZONE } from '~~/lib/event-time'
 import { ensureMissingEventSlugs } from '~~/lib/events/ensureMissingEventSlugs'
+import { sendOrganizerPreviewLinePush } from '~~/lib/line/sendOrganizerPreviewLinePush'
 import { sendWeeklyLinePush } from '~~/lib/line/sendWeeklyLinePush'
 
 dayjs.extend(utc)
@@ -17,6 +18,7 @@ interface LineCronEnvBindings {
   NUXT_NOTION_EVENTS_DATABASE_ID?: string
   NUXT_NOTION_TOKEN?: string
   NUXT_LINE_CHANNEL_ACCESS_TOKEN?: string
+  NUXT_LINE_ORGANIZER_GROUP_ID?: string
   NUXT_LINE_TEST_CHANNEL_ACCESS_TOKEN?: string
   NUXT_LINE_PUBLIC_GROUP_ID?: string
   NUXT_LINE_TEST_GROUP_ID?: string
@@ -116,6 +118,46 @@ async function handleWeeklyLineCron(
   }
 }
 
+async function handleOrganizerPreviewCron(
+  scheduledTime: number,
+  config: WeeklyLineCronConfig
+) {
+  if (!config.groupId || !config.lineChannelAccessToken || !config.notionToken || !config.notionEventsDatabaseId) {
+    console.log('LINE organizer preview cron skipped: missing configuration')
+    return
+  }
+
+  const now = dayjs(scheduledTime).tz(TAIPEI_TIMEZONE)
+
+  try {
+    console.log('LINE organizer preview cron push starting', {
+      scheduledTime
+    })
+
+    const result = await sendOrganizerPreviewLinePush({
+      lineChannelAccessToken: config.lineChannelAccessToken,
+      lineOrganizerGroupId: config.groupId,
+      notionConfig: {
+        token: config.notionToken,
+        databaseId: config.notionEventsDatabaseId
+      },
+      now,
+      siteUrl: config.siteUrl
+    })
+
+    console.log('LINE organizer preview cron push sent', {
+      eventCount: result.eventCount
+    })
+  } catch (error) {
+    console.error(
+      'LINE organizer preview cron failed',
+      error instanceof Error ? error.message : 'Unknown error'
+    )
+
+    throw error
+  }
+}
+
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('cloudflare:scheduled', async (event) => {
     const actualCron = event.controller?.cron ?? null
@@ -135,6 +177,7 @@ export default defineNitroPlugin((nitroApp) => {
 
     const { env } = event
     const linePublicGroupId = getEnvBinding(env, 'NUXT_LINE_PUBLIC_GROUP_ID')
+    const lineOrganizerGroupId = getEnvBinding(env, 'NUXT_LINE_ORGANIZER_GROUP_ID')
     const lineChannelAccessToken = getEnvBinding(env, 'NUXT_LINE_CHANNEL_ACCESS_TOKEN')
     const lineTestGroupId = getEnvBinding(env, 'NUXT_LINE_TEST_GROUP_ID')
     const lineTestChannelAccessToken = getEnvBinding(env, 'NUXT_LINE_TEST_CHANNEL_ACCESS_TOKEN')
@@ -171,6 +214,29 @@ export default defineNitroPlugin((nitroApp) => {
     }
 
     if (actualCron === TEST_NEXT_WEEKLY_CRON_EXPRESSION) {
+      console.log('LINE organizer preview cron started', {
+        cron: actualCron,
+        scheduledTime
+      })
+
+      console.log('LINE organizer preview cron config status', {
+        hasLineOrganizerGroupId: Boolean(lineOrganizerGroupId),
+        hasLineChannelAccessToken: Boolean(lineChannelAccessToken),
+        hasNotionToken: Boolean(notionToken),
+        hasNotionDatabaseId: Boolean(notionEventsDatabaseId)
+      })
+
+      await handleOrganizerPreviewCron(
+        event.controller.scheduledTime,
+        {
+          groupId: lineOrganizerGroupId,
+          lineChannelAccessToken,
+          notionToken,
+          notionEventsDatabaseId,
+          siteUrl
+        }
+      )
+
       console.log('LINE test next-week cron started', {
         cron: actualCron,
         scheduledTime

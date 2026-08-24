@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (!config.lineTestGroupId || !config.lineTestChannelAccessToken || !config.lineJobSecret) {
+  if (!config.lineOrganizerGroupId || !config.lineChannelAccessToken || !config.lineJobSecret) {
     throw createError({
       statusCode: 500,
       statusMessage: 'Missing LINE configuration'
@@ -35,9 +35,14 @@ export default defineEventHandler(async (event) => {
 
   try {
     const result = await sendOrganizerPreviewLinePush({
-      lineChannelAccessToken: config.lineTestChannelAccessToken,
-      lineOrganizerGroupId: config.lineTestGroupId,
-      now
+      lineChannelAccessToken: config.lineChannelAccessToken,
+      lineOrganizerGroupId: config.lineOrganizerGroupId,
+      notionConfig: {
+        token: config.notionToken,
+        databaseId: config.notionEventsDatabaseId
+      },
+      now,
+      siteUrl: config.public.siteUrl
     })
 
     return {
