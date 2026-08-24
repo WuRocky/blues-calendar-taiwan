@@ -22,8 +22,8 @@ import {
   markOrganizerPendingRequestStatus
 } from '~~/lib/line/organizerUpdateState'
 import { replyLineMessage, type LinePushMessage } from '~~/lib/line/pushLineMessage'
+import type { LineTextMessageEvent } from '~~/lib/line/weeklyCommandRouting'
 import type { NotionRuntimeConfig } from '~~/lib/notion-connection'
-import type { LineTextMessageEvent } from '~~/lib/line/handleLineMentionCommand'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)

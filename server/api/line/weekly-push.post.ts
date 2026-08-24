@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (!config.lineGroupId || !config.lineChannelAccessToken || !config.lineJobSecret) {
+  if (!config.linePublicGroupId || !config.lineChannelAccessToken || !config.lineJobSecret) {
     throw createError({
       statusCode: 500,
       statusMessage: 'Missing LINE configuration'
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   try {
     const result = await sendWeeklyLinePush({
       lineChannelAccessToken: config.lineChannelAccessToken,
-      lineGroupId: config.lineGroupId,
+      lineGroupId: config.linePublicGroupId,
       mode: 'remaining-week',
       siteUrl: config.public.siteUrl
     })

@@ -14,6 +14,7 @@ assert.match(cronPlugin, /\[event-slugs\] no missing slugs/)
 assert.match(cronPlugin, /\[event-slugs\] updated \$\{result\.updated\.length\} events/)
 assert.match(cronPlugin, /\[event-slugs\] failed/)
 assert.match(cronPlugin, /if \(actualCron === EVENT_SLUGS_CRON_EXPRESSION\)/)
-assert.match(cronPlugin, /if \(actualCron !== TEST_CRON_EXPRESSION\)/)
+assert.match(cronPlugin, /const PRODUCTION_WEEKLY_CRON_EXPRESSION = '0 2 \* \* 1'/)
+assert.match(cronPlugin, /const TEST_NEXT_WEEKLY_CRON_EXPRESSION = '0 2 \* \* 0'/)
 
 console.log('verify-event-slug-cron: ok')
