@@ -160,7 +160,7 @@ assert.deepEqual(weeklySummaryTexts, [
   '(日) 8/9 No End Social',
   '活動時間、地點與內容如有異動，請以主辦單位最新公告為準。'
 ])
-assert.equal(weeklyMessage.contents.contents[1].body.contents[0].text, '8/3（一） 00:00')
+assert.equal(weeklyMessage.contents.contents[1].body.contents[0].text, '8/3 (一) 00:00 - 8/8 (六) 23:00')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[1].contents[0].text, 'Social')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[2].text, 'Taipei Blues Social')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[1].backgroundColor, '#D8F0E3')
@@ -168,7 +168,7 @@ assert.equal(weeklyMessage.contents.contents[1].body.contents[3].contents[0].con
 assert.equal('cornerRadius' in weeklyMessage.contents.contents[1].body.contents[3].contents[0].contents[0], false)
 assert.equal(weeklyMessage.contents.contents[1].body.contents[3].contents[1].text, 'TapLife')
 assert.equal(weeklyMessage.contents.contents[1].body.contents[4].text, '📍 Dance Hall')
-assert.equal(weeklyMessage.contents.contents[2].body.contents[0].text, '8/5（三） 20:00')
+assert.equal(weeklyMessage.contents.contents[2].body.contents[0].text, '8/5 (三) 20:00 - 22:00')
 assert.equal(weeklyMessage.contents.contents[2].body.contents[1].contents[0].text, 'Class')
 assert.equal(weeklyMessage.contents.contents[2].body.contents[2].text, 'Blues 初級課')
 assert.equal(weeklyMessage.contents.contents[2].body.contents[3].contents[0].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/blues20.png')
@@ -180,7 +180,7 @@ assert.equal(weeklyMessage.contents.contents[2].footer.contents[0].action.label,
 assert.equal(weeklyMessage.contents.contents[2].footer.contents[0].action.uri, 'https://example.com/venue')
 assert.equal(weeklyMessage.contents.contents[2].footer.contents[1].action.label, '活動資訊')
 assert.equal(weeklyMessage.contents.contents[2].footer.contents[1].action.uri, 'https://example.com/register')
-assert.equal(weeklyMessage.contents.contents[7].body.contents[0].text, '8/9（日） 19:30')
+assert.equal(weeklyMessage.contents.contents[7].body.contents[0].text, '8/9 (日) 19:30')
 assert.equal(weeklyMessage.contents.contents[7].body.contents[1].contents[0].text, 'Social')
 assert.equal(weeklyMessage.contents.contents[7].body.contents[2].text, 'No End Social')
 assert.equal(weeklyMessage.contents.contents[7].body.contents[3].contents[0].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/find-your-blues.png')
@@ -217,6 +217,8 @@ assert.deepEqual(nextWeekSummaryTexts, [
 assert.equal(nextWeekMessage.contents.contents[1].body.contents[1].contents[0].text, 'Social')
 assert.equal(nextWeekMessage.contents.contents[2].body.contents[1].contents[0].text, 'WorkShop')
 assert.equal(nextWeekMessage.contents.contents[2].body.contents[1].backgroundColor, '#DDEEFE')
+assert.equal(nextWeekMessage.contents.contents[1].body.contents[0].text, '8/10 (一) 00:00 - 8/11 (二) 23:00')
+assert.equal(nextWeekMessage.contents.contents[2].body.contents[0].text, '8/10 (一) 20:00 - 22:00')
 
 const recentMessage = formatWeeklyEventsFlexMessage({
   weekStart: now.startOf('day'),
@@ -465,6 +467,25 @@ assert.equal(combinedOrganizerMessage.contents.type, 'carousel')
 assert.equal(combinedOrganizerMessage.contents.contents[1].body.contents[3].contents[0].contents[0].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/blues20.png')
 assert.equal(combinedOrganizerMessage.contents.contents[1].body.contents[3].contents[0].contents[1].url, 'https://blues-calendar-taiwan.example.com/organizer-logos/taplife.png')
 assert.equal(combinedOrganizerMessage.contents.contents[1].body.contents[3].contents[1].text, 'Blues20 & TapLife')
+
+const crossMidnightMessage = formatWeeklyEventsFlexMessage({
+  weekStart: weekRange.start,
+  weekEnd: weekRange.end,
+  events: [
+    makeEvent({
+      id: 'cross-midnight',
+      slug: 'cross-midnight',
+      eventType: 'social',
+      name: 'Cross Midnight Event',
+      startTime: '2026-08-29T14:00:00.000Z',
+      endTime: '2026-08-29T17:00:00.000Z',
+      timeStatus: 'upcoming'
+    })
+  ],
+  siteUrl
+})
+
+assert.equal(crossMidnightMessage.contents.contents[1].body.contents[0].text, '8/29 (六) 22:00 - 8/30 (日) 01:00')
 
 const unknownOrganizerMessage = formatWeeklyEventsFlexMessage({
   weekStart: weekRange.start,
