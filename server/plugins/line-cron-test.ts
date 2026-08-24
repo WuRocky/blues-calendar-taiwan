@@ -9,8 +9,8 @@ import { sendWeeklyLinePush } from '~~/lib/line/sendWeeklyLinePush'
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
-const PRODUCTION_WEEKLY_CRON_EXPRESSION = '0 2 * * 1'
-const TEST_NEXT_WEEKLY_CRON_EXPRESSION = '0 2 * * 0'
+const PRODUCTION_WEEKLY_CRON_EXPRESSION = '0 2 * * MON'
+const TEST_NEXT_WEEKLY_CRON_EXPRESSION = '0 2 * * SUN'
 const EVENT_SLUGS_CRON_EXPRESSION = '*/15 * * * *'
 
 interface LineCronEnvBindings {
