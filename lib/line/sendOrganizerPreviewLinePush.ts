@@ -1,10 +1,8 @@
 import dayjs, { type Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
-import { getNextWeeklyEvents } from '~~/lib/events/getNextWeeklyEvents'
-import { getNextTaipeiWeekRange } from '~~/lib/events/weeklyEvents'
-import { formatOrganizerPreviewMessage } from '~~/lib/line/formatOrganizerPreviewMessage'
-import { pushLineTextMessage } from '~~/lib/line/pushLineMessage'
+import type { NotionConnectionConfig } from '~~/lib/notion-connection'
+import { sendWeeklyLinePush } from '~~/lib/line/sendWeeklyLinePush'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
@@ -12,7 +10,9 @@ dayjs.extend(timezone)
 export interface OrganizerPreviewLinePushConfig {
   lineChannelAccessToken: string
   lineOrganizerGroupId: string
+  notionConfig?: Partial<NotionConnectionConfig>
   now?: Dayjs
+  siteUrl?: string
 }
 
 export interface OrganizerPreviewLinePushResult {
@@ -22,27 +22,24 @@ export interface OrganizerPreviewLinePushResult {
 export async function sendOrganizerPreviewLinePush({
   lineOrganizerGroupId,
   lineChannelAccessToken,
-  now = dayjs()
+  notionConfig,
+  now = dayjs(),
+  siteUrl
 }: OrganizerPreviewLinePushConfig): Promise<OrganizerPreviewLinePushResult> {
   if (!lineOrganizerGroupId || !lineChannelAccessToken) {
     throw new Error('Missing LINE configuration')
   }
 
-  const nextWeeklyEvents = await getNextWeeklyEvents(now)
-  const weekRange = getNextTaipeiWeekRange(now)
-  const message = formatOrganizerPreviewMessage({
-    weekStart: weekRange.start,
-    weekEnd: weekRange.end,
-    events: nextWeeklyEvents
-  })
-
-  await pushLineTextMessage({
-    channelAccessToken: lineChannelAccessToken,
-    targetId: lineOrganizerGroupId,
-    text: message
+  const result = await sendWeeklyLinePush({
+    lineChannelAccessToken,
+    lineGroupId: lineOrganizerGroupId,
+    mode: 'next-week',
+    notionConfig,
+    now,
+    siteUrl
   })
 
   return {
-    eventCount: nextWeeklyEvents.length
+    eventCount: result.eventCount
   }
 }
