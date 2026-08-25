@@ -16,6 +16,7 @@ export default defineNuxtConfig({
     notionToken: '',
     notionEventsDatabaseId: '',
     tallyNotionWriteEnabled: false,
+    openchatJobSecret: '',
     lineGroupId: '',
     lineLegacyGroupId: '',
     lineLegacyChannelAccessToken: '',
@@ -32,6 +33,7 @@ export default defineNuxtConfig({
       siteUrl: 'http://localhost:3000',
       eventSubmissionFormUrl: '',
       eventReportFormUrl: '',
+      lineAddFriendUrl: ''
     },
   },
   i18n: {

@@ -4,37 +4,36 @@ import timezone from 'dayjs/plugin/timezone'
 import { getWeeklyEvents } from '~~/lib/events/getWeeklyEvents'
 import { getWeeklyMessagePresentation } from '~~/lib/events/weeklyPresentation'
 import type { NotionConnectionConfig } from '~~/lib/notion-connection'
-import { type WeeklyEventQueryMode } from '~~/lib/events/weeklyEvents'
-import { formatWeeklyEventsFlexMessage } from '~~/lib/line/formatWeeklyEventsFlexMessage'
+import {
+  formatWeeklyOpenChatFeed,
+  type OpenChatWeeklyFeed
+} from '~~/lib/openchat/formatWeeklyOpenChatFeed'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
-export interface CreateWeeklyLineFlexMessageOptions {
-  mode?: WeeklyEventQueryMode
+export interface CreateWeeklyOpenChatFeedOptions {
+  lineAddFriendUrl?: string
   notionConfig?: Partial<NotionConnectionConfig>
+  now?: Dayjs
   siteUrl?: string
 }
 
-export async function createWeeklyLineFlexMessage(
-  now: Dayjs = dayjs(),
-  options: CreateWeeklyLineFlexMessageOptions = {}
-) {
-  const mode = options.mode ?? 'remaining-week'
+export async function createWeeklyOpenChatFeed(
+  options: CreateWeeklyOpenChatFeedOptions = {}
+): Promise<OpenChatWeeklyFeed> {
+  const now = options.now ?? dayjs()
+  const presentation = getWeeklyMessagePresentation(now, 'remaining-week')
   const events = await getWeeklyEvents(now, options.notionConfig, {
-    mode
+    mode: 'remaining-week'
   })
-  const presentation = getWeeklyMessagePresentation(now, mode)
-  const message = formatWeeklyEventsFlexMessage({
+
+  return formatWeeklyOpenChatFeed({
     weekStart: presentation.weekStart,
     weekEnd: presentation.weekEnd,
     events,
     siteUrl: options.siteUrl,
+    lineAddFriendUrl: options.lineAddFriendUrl,
     periodLabel: presentation.periodLabel
   })
-
-  return {
-    eventCount: events.length,
-    message
-  }
 }
