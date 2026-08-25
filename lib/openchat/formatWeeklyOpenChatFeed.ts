@@ -16,13 +16,14 @@ export interface OpenChatWeeklyEvent {
   end: string | null
   eventType: string
   eventUrl: string | null
+  isAllDay: boolean
   mapUrl: string | null
   name: string
   organizer: string | null
   organizerLogo: string | null
   start: string
   summary: string | null
-  timeLabel: string
+  timeLabel: string | null
   venue: string | null
 }
 
@@ -33,6 +34,8 @@ export interface OpenChatWeeklyFeed {
   publishDate: string
   shouldPublish: boolean
   text: string
+  upcomingWorkshopCount: number
+  upcomingWorkshops: OpenChatWeeklyEvent[]
   week: {
     end: string
     label: string
@@ -45,6 +48,7 @@ export interface FormatWeeklyOpenChatFeedOptions {
   lineAddFriendUrl?: string
   periodLabel?: string
   siteUrl?: string
+  upcomingWorkshops?: readonly EventItem[]
   weekEnd: Dayjs
   weekStart: Dayjs
 }
@@ -105,7 +109,18 @@ function getValidHttpUrl(value: string | null | undefined) {
 
 function buildEventDetailUrl(siteUrl: string, slug: string) {
   const baseUrl = resolveSiteUrl(siteUrl)
-  return baseUrl ? `${baseUrl}/events/${slug}` : null
+
+  if (!baseUrl) {
+    return null
+  }
+
+  const hostname = new URL(baseUrl).hostname.toLowerCase()
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+    return null
+  }
+
+  return `${baseUrl}/events/${slug}`
 }
 
 function buildOpenChatEventUrl(event: EventItem, siteUrl?: string) {
@@ -132,7 +147,11 @@ function buildOpenChatMapUrl(event: EventItem) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address.trim())}`
 }
 
-function formatOpenChatTimeLabel(start: Dayjs, end: Dayjs | null) {
+function formatOpenChatTimeLabel(start: Dayjs, end: Dayjs | null, isAllDay: boolean) {
+  if (isAllDay) {
+    return null
+  }
+
   if (!end) {
     return start.format('HH:mm')
   }
@@ -144,7 +163,11 @@ function formatOpenChatTimeLabel(start: Dayjs, end: Dayjs | null) {
   return `${start.format('HH:mm')}–${formatWeekLabel(end)} ${end.format('HH:mm')}`
 }
 
-function formatTextDateTime(start: Dayjs, end: Dayjs | null) {
+function formatTextDateTime(start: Dayjs, end: Dayjs | null, isAllDay: boolean) {
+  if (isAllDay) {
+    return formatWeekLabel(start)
+  }
+
   if (!end) {
     return `${formatWeekLabel(start)}${start.format('HH:mm')}`
   }
@@ -172,6 +195,7 @@ function formatEventTypeLabel(eventType: EventType) {
 function buildOpenChatEvent(event: EventItem, siteUrl?: string): OpenChatWeeklyEvent {
   const start = formatTaipeiDateTime(event.startTime || '')
   const end = event.endTime ? formatTaipeiDateTime(event.endTime) : null
+  const isAllDay = event.startTimeIsDateOnly || event.endTimeIsDateOnly
 
   return {
     name: event.name,
@@ -179,7 +203,8 @@ function buildOpenChatEvent(event: EventItem, siteUrl?: string): OpenChatWeeklyE
     start: toTaipeiIso(start),
     end: end ? toTaipeiIso(end) : null,
     dateLabel: formatWeekLabel(start),
-    timeLabel: formatOpenChatTimeLabel(start, end),
+    timeLabel: formatOpenChatTimeLabel(start, end, isAllDay),
+    isAllDay,
     organizer: normalizeTextValue(event.organizer),
     venue: normalizeTextValue(event.venueName),
     address: normalizeTextValue(event.address),
@@ -193,25 +218,34 @@ function buildOpenChatEvent(event: EventItem, siteUrl?: string): OpenChatWeeklyE
 
 function buildOpenChatText(
   events: readonly OpenChatWeeklyEvent[],
+  upcomingWorkshops: readonly OpenChatWeeklyEvent[],
   periodLabel: string,
   weekLabel: string,
   lineAddFriendUrl?: string
 ) {
-  if (events.length === 0) {
+  if (events.length === 0 && upcomingWorkshops.length === 0) {
     return ''
   }
 
-  const lines: string[] = [
-    `💙 ${periodLabel} Blues 活動`,
-    weekLabel,
-    `本週共 ${events.length} 場活動`
-  ]
+  const lines: string[] = [`💙 ${periodLabel} Blues 活動`, weekLabel]
+
+  if (events.length > 0) {
+    lines.push(`本週共 ${events.length} 場活動`)
+  } else {
+    lines.push('本週目前沒有活動')
+  }
 
   for (const event of events) {
     const icon = formatEventTypeEmoji(event.eventType.toLowerCase() as EventType)
 
     lines.push('')
-    lines.push(formatTextDateTime(dayjs(event.start), event.end ? dayjs(event.end) : null))
+    lines.push(
+      formatTextDateTime(
+        dayjs(event.start),
+        event.end ? dayjs(event.end) : null,
+        event.isAllDay
+      )
+    )
     lines.push(`${icon} ${event.name}`)
 
     if (event.organizer) {
@@ -225,6 +259,38 @@ function buildOpenChatText(
     if (event.eventUrl) {
       lines.push('🔗 活動資訊：')
       lines.push(event.eventUrl)
+    }
+  }
+
+  if (upcomingWorkshops.length > 0) {
+    lines.push('')
+    lines.push('📌 近期 Workshop')
+
+    for (const event of upcomingWorkshops) {
+      const icon = formatEventTypeEmoji(event.eventType.toLowerCase() as EventType)
+
+      lines.push('')
+      lines.push(
+        formatTextDateTime(
+          dayjs(event.start),
+          event.end ? dayjs(event.end) : null,
+          event.isAllDay
+        )
+      )
+      lines.push(`${icon} ${event.name}`)
+
+      if (event.organizer) {
+        lines.push(`👤 ${event.organizer}`)
+      }
+
+      if (event.venue) {
+        lines.push(`📍 ${event.venue}`)
+      }
+
+      if (event.eventUrl) {
+        lines.push('🔗 活動資訊：')
+        lines.push(event.eventUrl)
+      }
     }
   }
 
@@ -254,14 +320,16 @@ export function formatWeeklyOpenChatFeed({
   events,
   siteUrl,
   lineAddFriendUrl,
+  upcomingWorkshops = [],
   periodLabel = '本週'
 }: FormatWeeklyOpenChatFeedOptions): OpenChatWeeklyFeed {
   const mappedEvents = events.map((event) => buildOpenChatEvent(event, siteUrl))
+  const mappedUpcomingWorkshops = upcomingWorkshops.map((event) => buildOpenChatEvent(event, siteUrl))
   const publishDate = weekStart.format('YYYY-MM-DD')
   const weekLabel = formatOpenChatWeekRange(weekStart, weekEnd)
 
   return {
-    shouldPublish: mappedEvents.length > 0,
+    shouldPublish: mappedEvents.length > 0 || mappedUpcomingWorkshops.length > 0,
     publishDate,
     messageId: `weekly-${publishDate}`,
     week: {
@@ -271,8 +339,11 @@ export function formatWeeklyOpenChatFeed({
     },
     eventCount: mappedEvents.length,
     events: mappedEvents,
+    upcomingWorkshopCount: mappedUpcomingWorkshops.length,
+    upcomingWorkshops: mappedUpcomingWorkshops,
     text: buildOpenChatText(
       mappedEvents,
+      mappedUpcomingWorkshops,
       periodLabel,
       weekLabel,
       lineAddFriendUrl
